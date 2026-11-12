@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#090909">
+<title>HAX RESELLER | Nacer_22</title><link rel="stylesheet" href="style.css">
+<script src="config.js" defer></script><script src="app.js" defer></script>
+</head>
+<body>
+<div class="bg-glow"></div>
+<main class="shell">
+<header class="topbar"><a class="brand" href="#"><span class="mark">H</span><span><b>HAX<span>_</span>RESELLER</b><small>NACER_22 · MANAGEMENT</small></span></a><div class="top-status"><i></i> SECURE PANEL</div></header>
+<section id="loginView" class="login-wrap">
+  <div class="login-card">
+    <div class="eyebrow">HAX NON ROOT / ACCESS</div><h1>تسجيل <span>الدخول</span></h1><p class="muted">اختر نوع الدخول للمتابعة إلى لوحة الإدارة.</p>
+    <div class="tabs"><button class="tab active" data-role="admin">المدير</button><button class="tab" data-role="reseller">الموزّع</button></div>
+    <form id="loginForm">
+      <label id="loginLabel" for="loginIdentity">اسم المدير</label><input id="loginIdentity" autocomplete="username" required placeholder="اسم المستخدم">
+      <label for="loginSecret" id="secretLabel">كلمة المرور</label><input id="loginSecret" type="password" autocomplete="current-password" required placeholder="كلمة المرور">
+      <button class="btn primary full" type="submit">دخول إلى النظام <span>←</span></button>
+    </form><p id="loginMessage" class="message" role="status"></p>
+    <div class="login-foot">لا توجد بيانات دخول افتراضية. يتم ضبطها على الخادم.</div>
+  </div>
+</section>
+
+<section id="adminView" class="hidden">
+  <div class="page-head"><div><div class="eyebrow">ADMIN / OVERVIEW</div><h1>لوحة <span>الإدارة</span></h1><p class="muted">إدارة الموزعين والأرصدة ومفاتيح الوصول.</p></div><button class="btn ghost logout">تسجيل الخروج</button></div>
+  <div class="stats">
+    <article class="stat"><small>الموزعون</small><strong id="statResellers">0</strong></article>
+    <article class="stat"><small>كل المفاتيح</small><strong id="statKeys">0</strong></article>
+    <article class="stat"><small>المفاتيح السارية</small><strong id="statActive">0</strong></article>
+    <article class="stat"><small>إجمالي الأرصدة</small><strong id="statBalance">0.00</strong></article>
+  </div>
+  <div class="content-grid">
+    <article class="panel"><div class="panel-head"><div><div class="eyebrow">NEW ACCOUNT</div><h2>إضافة موزّع</h2></div><span class="panel-icon">＋</span></div>
+      <form id="addResellerForm" class="form-grid"><label>اسم الموزع<input id="newResellerLabel" required maxlength="60" placeholder="مثال: Reseller 01"></label><label>الرصيد الابتدائي<input id="newResellerBalance" type="number" min="0" step=".01" value="10" required></label><button class="btn primary full" type="submit">إنشاء حساب موزّع</button></form>
+      <div id="newResellerResult" class="result-box hidden"></div>
+    </article>
+    <article class="panel"><div class="panel-head"><div><div class="eyebrow">BALANCE CONTROL</div><h2>تعديل الرصيد</h2></div><span class="panel-icon">◈</span></div>
+      <form id="balanceForm" class="form-grid"><label>الموزّع<select id="balanceReseller" required><option value="">اختر موزعاً</option></select></label><label>المبلغ<input id="balanceAmount" type="number" min=".01" step=".01" required placeholder="0.00"></label><div class="button-row"><button class="btn primary" type="submit" data-action="add">إضافة رصيد</button><button class="btn danger" type="submit" data-action="deduct">خصم رصيد</button></div></form>
+    </article>
+  </div>
+  <article class="panel table-panel"><div class="panel-head"><div><div class="eyebrow">ACCOUNT DIRECTORY</div><h2>قائمة الموزعين</h2></div><button id="refreshAdmin" class="btn ghost small">تحديث</button></div>
+    <div class="table-scroll"><table><thead><tr><th>الموزّع</th><th>الرمز</th><th>الرصيد</th><th>المفاتيح</th><th>إجراء</th></tr></thead><tbody id="resellerRows"><tr><td colspan="5" class="muted center">لا توجد بيانات بعد.</td></tr></tbody></table></div>
+    <div class="danger-zone"><div><b>حذف جميع المفاتيح</b><small>سيؤدي ذلك إلى إزالة كل المفاتيح من هذا النظام.</small></div><button id="deleteAllKeys" class="btn danger small">حذف الكل</button></div>
+  </article>
+</section>
+
+<section id="resellerView" class="hidden">
+  <div class="page-head"><div><div class="eyebrow">RESELLER / WORKSPACE</div><h1>مرحباً <span id="resellerName">بك</span></h1><p class="muted">أنشئ مفاتيحك وتابع رصيدك.</p></div><button class="btn ghost logout">تسجيل الخروج</button></div>
+  <div class="stats reseller-stats"><article class="stat"><small>رمز الموزع</small><strong id="myCode" class="code-value">—</strong></article><article class="stat"><small>الرصيد المتاح</small><strong id="myBalance">0.00</strong></article><article class="stat"><small>المفاتيح المنشأة</small><strong id="myKeyCount">0</strong></article></div>
+  <div class="content-grid">
+    <article class="panel"><div class="panel-head"><div><div class="eyebrow">KEY GENERATOR</div><h2>إنشاء مفاتيح</h2></div><span class="panel-icon">⌘</span></div>
+      <form id="generateForm" class="form-grid"><label>مدة المفتاح<select id="duration"><option value="3600000">ساعة واحدة · 0.50</option><option value="10800000">3 ساعات · 1.00</option><option value="21600000">6 ساعات · 1.50</option><option value="43200000">12 ساعة · 2.00</option><option value="86400000">24 ساعة · 2.50</option><option value="259200000">3 أيام · 3.50</option><option value="604800000">7 أيام · 4.50</option><option value="1296000000">15 يوماً · 6.00</option><option value="2592000000" selected>30 يوماً · 10.00</option></select></label><label>عدد المفاتيح<input id="quantity" type="number" min="1" max="10" value="1"></label><label>عدد الأجهزة<select id="devices"><option value="1">جهاز واحد</option><option value="2">جهازان</option><option value="3">3 أجهزة</option><option value="5">5 أجهزة</option></select></label><button class="btn primary full" type="submit">إنشاء المفاتيح وخصم الرصيد</button></form>
+      <div id="generatedResult" class="result-box hidden"></div>
+    </article>
+    <article class="panel"><div class="panel-head"><div><div class="eyebrow">ACCOUNT SUMMARY</div><h2>ملخص الحساب</h2></div><span class="panel-icon">◉</span></div><div class="summary-row"><span>حالة الاتصال</span><b class="ok-text">متصل بالخادم</b></div><div class="summary-row"><span>صلاحية الحساب</span><b>موزّع</b></div><div class="summary-row"><span>إدارة الحساب</span><b>تواصل مع المدير</b></div></article>
+  </div>
+  <article class="panel table-panel"><div class="panel-head"><div><div class="eyebrow">MY KEYS</div><h2>المفاتيح الخاصة بي</h2></div><div class="button-row"><button id="deleteMyKeys" class="btn danger small">حذف مفاتيحي</button><button id="refreshReseller" class="btn ghost small">تحديث</button></div></div><div class="table-scroll"><table><thead><tr><th>المفتاح</th><th>المدة</th><th>الأجهزة</th><th>الانتهاء</th><th>إجراء</th></tr></thead><tbody id="myKeyRows"><tr><td colspan="5" class="muted center">لا توجد مفاتيح.</td></tr></tbody></table></div></article>
+</section>
+<div id="toast" class="toast" role="status"></div>
+<footer>HAX_NON_ROOT <span>·</span> Nacer_22 <span>·</span> Reseller system</footer>
+</main>
+</body></html>
