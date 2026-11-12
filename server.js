@@ -32,14 +32,16 @@ if (!ADMIN_USERNAME || ADMIN_PASSWORD.length < 14) {
 }
 
 app.use(helmet());
-app.use(cors({
-  origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(new Error("Origin is not allowed by CORS."));
-  },
-  methods: ["GET", "POST", "PATCH", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
+if (allowedOrigins.length) {
+  app.use(cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error("Origin is not allowed by CORS."));
+    },
+    methods: ["GET", "POST", "PATCH", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+  }));
+}
 app.use(express.json({ limit: "20kb" }));
 
 const authLimiter = rateLimit({
