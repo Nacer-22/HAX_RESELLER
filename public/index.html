@@ -1,63 +1,1089 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#090909">
-<title>HAX RESELLER | Nacer_22</title><link rel="stylesheet" href="style.css">
-<script src="config.js" defer></script><script src="app.js" defer></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HAX_NON_ROOT CLIENT - Secure Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+--bg-dark: #030407;
+--card-bg: #0A0D14;
+--card-border: rgba(229, 9, 20, 0.25);
+--accent-blue: #E50914;
+--accent-glow: #FF3B30;
+--text-white: #ffffff;
+--text-muted: #78909C;
+--danger-red: #FF1744;
+--success-green: #00E676;
+--neon-glow: 0 0 15px rgba(229, 9, 20, 0.4);
+--neon-green-glow: 0 0 15px rgba(0, 230, 118, 0.4);
+--neon-red-glow: 0 0 15px rgba(255, 23, 68, 0.5);
+}
+* { box-sizing: border-box; font-family: 'Cairo', sans-serif; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+background: radial-gradient(circle at center, #160607 0%, var(--bg-dark) 100%);
+color: var(--text-white);
+min-height: 100vh;
+padding: 20px 15px;
+display: flex;
+justify-content: center;
+align-items: flex-start;
+}
+.dashboard-container {
+width: 100%;
+max-width: 500px;
+display: flex;
+flex-direction: column;
+gap: 16px;
+}
+.header-bar {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 8px;
+}
+.brand-logo-container {
+display: flex;
+justify-content: space-between;
+align-items: center;
+width: 100%;
+margin-bottom: 25px;
+padding: 0 5px;
+}
+.brand-logo {
+font-family: 'Orbitron', sans-serif;
+font-size: 1.6rem;
+font-weight: 900;
+letter-spacing: 1.5px;
+font-style: italic;
+line-height: 1.1;
+color: #fff;
+text-shadow: 0 0 10px rgba(229,9,20,0.5);
+}
+.brand-logo span { display: block; font-size: 0.75rem; color: var(--accent-glow); letter-spacing: 3px; font-style: normal; margin-top: 2px; text-shadow: 0 0 8px var(--accent-glow); }
+.top-pill-btn {
+background: rgba(229, 9, 20, 0.15);
+border: 1px solid var(--accent-glow);
+color: var(--accent-glow);
+padding: 6px 14px;
+border-radius: 20px;
+font-size: 0.75rem;
+font-weight: 700;
+cursor: pointer;
+text-transform: uppercase;
+letter-spacing: 1px;
+display: inline-flex;
+align-items: center;
+justify-content: center;
+gap: 6px;
+box-shadow: var(--neon-glow);
+transition: 0.2s;
+}
+.top-pill-btn:hover { background: rgba(229, 9, 20, 0.3); }
+.nav-btns { display: flex; gap: 8px; }
+.nav-btn {
+background: rgba(10, 13, 20, 0.9);
+border: 1px solid var(--card-border);
+color: var(--text-muted);
+padding: 6px 14px;
+border-radius: 20px;
+font-size: 0.75rem;
+font-weight: 700;
+cursor: pointer;
+text-transform: uppercase;
+letter-spacing: 1px;
+display: flex;
+align-items: center;
+gap: 6px;
+transition: 0.3s;
+}
+.nav-btn.active { color: var(--accent-glow); border-color: var(--accent-glow); box-shadow: var(--neon-glow); }
+.btn-share-vibrant {
+background: linear-gradient(135deg, #E50914, #B20710);
+border: 1px solid #FF3B30;
+color: #fff;
+padding: 8px 14px;
+border-radius: 12px;
+font-size: 0.75rem;
+font-weight: 800;
+cursor: pointer;
+text-transform: uppercase;
+box-shadow: 0 0 15px rgba(229, 9, 20, 0.6);
+display: inline-flex;
+align-items: center;
+gap: 5px;
+transition: 0.3s;
+}
+.btn-share-vibrant:hover { transform: scale(1.05); box-shadow: 0 0 25px rgba(229, 9, 20, 0.8); }
+.stats-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 12px;
+}
+.stat-card {
+background: var(--card-bg);
+border: 1px solid var(--card-border);
+border-radius: 16px;
+padding: 16px;
+text-align: center;
+box-shadow: 0 4px 25px rgba(0, 0, 0, 0.6), inset 0 0 10px rgba(229, 9, 20, 0.1);
+}
+.stat-value {
+font-family: 'Orbitron', sans-serif;
+font-size: 1.6rem;
+font-weight: 800;
+color: #fff;
+margin-bottom: 2px;
+text-shadow: 0 0 12px rgba(229, 9, 20, 0.6);
+}
+.stat-label {
+font-size: 0.7rem;
+color: var(--text-muted);
+font-weight: 700;
+text-transform: uppercase;
+letter-spacing: 1px;
+}
+.accordion-item {
+background: var(--card-bg);
+border: 1px solid var(--card-border);
+border-radius: 16px;
+overflow: hidden;
+margin-bottom: 12px;
+box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+.accordion-header {
+padding: 16px 20px;
+display: flex;
+justify-content: space-between;
+align-items: center;
+cursor: pointer;
+font-weight: 700;
+font-size: 0.85rem;
+color: var(--text-muted);
+text-transform: uppercase;
+letter-spacing: 1px;
+user-select: none;
+}
+.accordion-header.active { color: var(--accent-glow); text-shadow: 0 0 8px var(--accent-glow); }
+.accordion-icon { transition: transform 0.3s ease; }
+.accordion-header.active .accordion-icon { transform: rotate(180deg); }
+.accordion-content {
+padding: 0 20px 20px 20px;
+display: none;
+flex-direction: column;
+gap: 12px;
+}
+.accordion-content.show { display: flex; }
+.input-field {
+width: 100%;
+background: #030407;
+border: 1px solid var(--card-border);
+border-radius: 12px;
+padding: 14px;
+color: #fff;
+font-family: 'Orbitron', 'Cairo', sans-serif;
+font-size: 0.95rem;
+text-align: center;
+outline: none;
+transition: 0.3s;
+box-shadow: inset 0 0 8px rgba(0,0,0,0.8);
+}
+.input-field:focus { border-color: var(--accent-glow); box-shadow: var(--neon-glow), inset 0 0 8px rgba(229, 9, 20, 0.2); }
+.btn-submit {
+width: 100%;
+background: linear-gradient(135deg, #B20710, #E50914);
+border: 1px solid var(--accent-glow);
+border-radius: 12px;
+color: #fff;
+padding: 14px;
+font-weight: 800;
+font-size: 0.9rem;
+text-transform: uppercase;
+letter-spacing: 1.5px;
+cursor: pointer;
+box-shadow: var(--neon-glow);
+transition: 0.3s;
+}
+.btn-submit:hover { opacity: 0.95; transform: translateY(-2px); box-shadow: 0 0 25px rgba(229, 9, 20, 0.7); }
+.btn-submit:disabled { opacity: 0.5; cursor: wait; transform: none; }
+.btn-danger-all {
+width: 100%;
+background: linear-gradient(135deg, #FF1744, #B71C1C);
+border: 1px solid var(--danger-red);
+border-radius: 12px;
+color: #fff;
+padding: 14px;
+font-weight: 800;
+font-size: 0.85rem;
+text-transform: uppercase;
+letter-spacing: 1.2px;
+cursor: pointer;
+box-shadow: var(--neon-red-glow);
+transition: 0.3s;
+}
+.btn-danger-all:hover { opacity: 0.95; transform: translateY(-2px); box-shadow: 0 0 25px rgba(255, 23, 68, 0.8); }
+.table-header-action {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 10px;
+}
+.btn-delete-selected {
+background: linear-gradient(135deg, #FF1744, #D32F2F);
+color: #fff;
+border: none;
+padding: 8px 16px;
+border-radius: 10px;
+font-size: 0.75rem;
+font-weight: 800;
+cursor: pointer;
+box-shadow: 0 0 12px rgba(255, 23, 68, 0.5);
+}
+.resellers-table {
+width: 100%;
+border-collapse: collapse;
+font-size: 0.8rem;
+}
+.resellers-table th {
+color: var(--accent-glow);
+padding: 8px 4px;
+text-align: right;
+font-weight: 700;
+border-bottom: 1px solid var(--card-border);
+}
+.resellers-table td {
+padding: 12px 4px;
+border-bottom: 1px solid rgba(255,255,255,0.05);
+vertical-align: middle;
+}
+.code-text { font-family: 'Orbitron', sans-serif; font-size: 0.85rem; color: #fff; font-weight: 700; text-shadow: 0 0 8px rgba(255,255,255,0.3); word-break: break-all; }
+.val-green { color: var(--success-green); font-family: 'Orbitron', sans-serif; font-weight: 700; text-shadow: var(--neon-green-glow); }
+.val-num { font-family: 'Orbitron', sans-serif; }
+.btn-trash {
+background: rgba(255, 23, 68, 0.15);
+border: 1px solid rgba(255, 23, 68, 0.4);
+color: var(--danger-red);
+padding: 6px 12px;
+border-radius: 8px;
+cursor: pointer;
+box-shadow: 0 0 10px rgba(255, 23, 68, 0.3);
+transition: 0.3s;
+}
+.btn-trash:hover { background: rgba(255, 23, 68, 0.3); box-shadow: 0 0 15px rgba(255, 23, 68, 0.6); }
+.msg-box { font-size: 0.8rem; text-align: center; min-height: 18px; margin-top: 4px; font-weight: 700; text-shadow: 0 0 10px rgba(229,9,20,0.4); }
+.hidden { display: none !important; }
+.auth-container-center {
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+min-height: 85vh;
+text-align: center;
+width: 100%;
+}
+.auth-sub { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; line-height: 1.5; }
+.footer-link-btn {
+background: none; border: none; color: var(--accent-glow); font-size: 0.75rem; cursor: pointer; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;
+text-shadow: 0 0 8px var(--accent-glow);
+}
+.footer-link-btn:hover { opacity: 0.9; }
+</style>
 </head>
 <body>
-<div class="bg-glow"></div>
-<main class="shell">
-<header class="topbar"><a class="brand" href="#"><span class="mark">H</span><span><b>HAX<span>_</span>RESELLER</b><small>NACER_22 · MANAGEMENT</small></span></a><div class="top-status"><i></i> SECURE PANEL</div></header>
-<section id="loginView" class="login-wrap">
-  <div class="login-card">
-    <div class="eyebrow">HAX NON ROOT / ACCESS</div><h1>تسجيل <span>الدخول</span></h1><p class="muted">اختر نوع الدخول للمتابعة إلى لوحة الإدارة.</p>
-    <div class="tabs"><button class="tab active" data-role="admin">المدير</button><button class="tab" data-role="reseller">الموزّع</button></div>
-    <form id="loginForm">
-      <label id="loginLabel" for="loginIdentity">اسم المدير</label><input id="loginIdentity" autocomplete="username" required placeholder="اسم المستخدم">
-      <label for="loginSecret" id="secretLabel">كلمة المرور</label><input id="loginSecret" type="password" autocomplete="current-password" required placeholder="كلمة المرور">
-      <button class="btn primary full" type="submit">دخول إلى النظام <span>←</span></button>
-    </form><p id="loginMessage" class="message" role="status"></p>
-    <div class="login-foot">لا توجد بيانات دخول افتراضية. يتم ضبطها على الخادم.</div>
-  </div>
-</section>
 
-<section id="adminView" class="hidden">
-  <div class="page-head"><div><div class="eyebrow">ADMIN / OVERVIEW</div><h1>لوحة <span>الإدارة</span></h1><p class="muted">إدارة الموزعين والأرصدة ومفاتيح الوصول.</p></div><button class="btn ghost logout">تسجيل الخروج</button></div>
-  <div class="stats">
-    <article class="stat"><small>الموزعون</small><strong id="statResellers">0</strong></article>
-    <article class="stat"><small>كل المفاتيح</small><strong id="statKeys">0</strong></article>
-    <article class="stat"><small>المفاتيح السارية</small><strong id="statActive">0</strong></article>
-    <article class="stat"><small>إجمالي الأرصدة</small><strong id="statBalance">0.00</strong></article>
-  </div>
-  <div class="content-grid">
-    <article class="panel"><div class="panel-head"><div><div class="eyebrow">NEW ACCOUNT</div><h2>إضافة موزّع</h2></div><span class="panel-icon">＋</span></div>
-      <form id="addResellerForm" class="form-grid"><label>اسم الموزع<input id="newResellerLabel" required maxlength="60" placeholder="مثال: Reseller 01"></label><label>الرصيد الابتدائي<input id="newResellerBalance" type="number" min="0" step=".01" value="10" required></label><button class="btn primary full" type="submit">إنشاء حساب موزّع</button></form>
-      <div id="newResellerResult" class="result-box hidden"></div>
-    </article>
-    <article class="panel"><div class="panel-head"><div><div class="eyebrow">BALANCE CONTROL</div><h2>تعديل الرصيد</h2></div><span class="panel-icon">◈</span></div>
-      <form id="balanceForm" class="form-grid"><label>الموزّع<select id="balanceReseller" required><option value="">اختر موزعاً</option></select></label><label>المبلغ<input id="balanceAmount" type="number" min=".01" step=".01" required placeholder="0.00"></label><div class="button-row"><button class="btn primary" type="submit" data-action="add">إضافة رصيد</button><button class="btn danger" type="submit" data-action="deduct">خصم رصيد</button></div></form>
-    </article>
-  </div>
-  <article class="panel table-panel"><div class="panel-head"><div><div class="eyebrow">ACCOUNT DIRECTORY</div><h2>قائمة الموزعين</h2></div><button id="refreshAdmin" class="btn ghost small">تحديث</button></div>
-    <div class="table-scroll"><table><thead><tr><th>الموزّع</th><th>الرمز</th><th>الرصيد</th><th>المفاتيح</th><th>إجراء</th></tr></thead><tbody id="resellerRows"><tr><td colspan="5" class="muted center">لا توجد بيانات بعد.</td></tr></tbody></table></div>
-    <div class="danger-zone"><div><b>حذف جميع المفاتيح</b><small>سيؤدي ذلك إلى إزالة كل المفاتيح من هذا النظام.</small></div><button id="deleteAllKeys" class="btn danger small">حذف الكل</button></div>
-  </article>
-</section>
+<div class="dashboard-container" id="appRoot">
 
-<section id="resellerView" class="hidden">
-  <div class="page-head"><div><div class="eyebrow">RESELLER / WORKSPACE</div><h1>مرحباً <span id="resellerName">بك</span></h1><p class="muted">أنشئ مفاتيحك وتابع رصيدك.</p></div><button class="btn ghost logout">تسجيل الخروج</button></div>
-  <div class="stats reseller-stats"><article class="stat"><small>رمز الموزع</small><strong id="myCode" class="code-value">—</strong></article><article class="stat"><small>الرصيد المتاح</small><strong id="myBalance">0.00</strong></article><article class="stat"><small>المفاتيح المنشأة</small><strong id="myKeyCount">0</strong></article></div>
-  <div class="content-grid">
-    <article class="panel"><div class="panel-head"><div><div class="eyebrow">KEY GENERATOR</div><h2>إنشاء مفاتيح</h2></div><span class="panel-icon">⌘</span></div>
-      <form id="generateForm" class="form-grid"><label>مدة المفتاح<select id="duration"><option value="3600000">ساعة واحدة · 0.50</option><option value="10800000">3 ساعات · 1.00</option><option value="21600000">6 ساعات · 1.50</option><option value="43200000">12 ساعة · 2.00</option><option value="86400000">24 ساعة · 2.50</option><option value="259200000">3 أيام · 3.50</option><option value="604800000">7 أيام · 4.50</option><option value="1296000000">15 يوماً · 6.00</option><option value="2592000000" selected>30 يوماً · 10.00</option></select></label><label>عدد المفاتيح<input id="quantity" type="number" min="1" max="10" value="1"></label><label>عدد الأجهزة<select id="devices"><option value="1">جهاز واحد</option><option value="2">جهازان</option><option value="3">3 أجهزة</option><option value="5">5 أجهزة</option></select></label><button class="btn primary full" type="submit">إنشاء المفاتيح وخصم الرصيد</button></form>
-      <div id="generatedResult" class="result-box hidden"></div>
-    </article>
-    <article class="panel"><div class="panel-head"><div><div class="eyebrow">ACCOUNT SUMMARY</div><h2>ملخص الحساب</h2></div><span class="panel-icon">◉</span></div><div class="summary-row"><span>حالة الاتصال</span><b class="ok-text">متصل بالخادم</b></div><div class="summary-row"><span>صلاحية الحساب</span><b>موزّع</b></div><div class="summary-row"><span>إدارة الحساب</span><b>تواصل مع المدير</b></div></article>
-  </div>
-  <article class="panel table-panel"><div class="panel-head"><div><div class="eyebrow">MY KEYS</div><h2>المفاتيح الخاصة بي</h2></div><div class="button-row"><button id="deleteMyKeys" class="btn danger small">حذف مفاتيحي</button><button id="refreshReseller" class="btn ghost small">تحديث</button></div></div><div class="table-scroll"><table><thead><tr><th>المفتاح</th><th>المدة</th><th>الأجهزة</th><th>الانتهاء</th><th>إجراء</th></tr></thead><tbody id="myKeyRows"><tr><td colspan="5" class="muted center">لا توجد مفاتيح.</td></tr></tbody></table></div></article>
-</section>
-<div id="toast" class="toast" role="status"></div>
-<footer>HAX_NON_ROOT <span>·</span> Nacer_22 <span>·</span> Reseller system</footer>
-</main>
-</body></html>
+<!-- ================= 1. شاشة تسجيل دخول الموزع ================= -->
+<div id="resellerLoginView" class="auth-container-center">
+<div class="brand-logo-container">
+<button class="top-pill-btn" onclick="showAdminLogin()">
+🛡 RESELLER ACCESS
+</button>
+<div class="brand-logo" style="text-align: left;">
+HAX_NON_ROOT
+<span>CLIENT</span>
+</div>
+</div>
+
+<div style="width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 16px; margin-top: 20px;">
+<div class="auth-sub">ENTER YOUR RESELLER CODE<br>TO ACCESS THE PANEL</div>
+
+<div style="text-align: right; font-size: 0.65rem; color: var(--accent-glow); font-weight: 700; margin-bottom: -10px;">RESELLER CODE</div>
+<div style="position: relative; display: flex; align-items: center;">
+<input type="text" id="resellerInputCode" class="input-field" placeholder="ENTER RESELLER CODE" autocomplete="off" style="padding-left: 45px; text-align: center;">
+<span style="position: absolute; left: 16px; color: var(--accent-glow); font-size: 0.9rem;">🔑</span>
+</div>
+
+<button class="btn-submit" onclick="loginAsReseller()">→ UNLOCK</button>
+
+<div style="margin-top: 15px; display: flex; flex-direction: column; gap: 10px; align-items: center;">
+<span style="font-size: 0.7rem; color: var(--text-muted);">No key? Contact your seller.</span>
+<button class="footer-link-btn" onclick="showAdminLogin()">
+🛡 ADMIN ACCESS
+</button>
+</div>
+</div>
+</div>
+
+<!-- ================= 2. شاشة تسجيل دخول الأدمن ================= -->
+<div id="adminLoginView" class="auth-container-center hidden">
+<div class="brand-logo-container">
+<button class="top-pill-btn" onclick="showResellerLogin()">
+🛡 ADMIN ACCESS
+</button>
+<div class="brand-logo" style="text-align: left;">
+HAX_NON_ROOT
+<span>CLIENT</span>
+</div>
+</div>
+
+<div style="width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 16px; margin-top: 20px;">
+<div class="auth-sub">RESTRICTED AREA<br>AUTHORIZED PERSONNEL ONLY</div>
+
+<div style="position: relative; display: flex; align-items: center; margin-top: 10px;">
+<input type="password" id="adminInputPass" class="input-field" placeholder="ENTER ADMIN PASSWORD" autocomplete="off" style="padding-left: 45px; text-align: center;">
+<span style="position: absolute; left: 16px; color: var(--accent-glow); font-size: 0.9rem;">🔒</span>
+</div>
+
+<button class="btn-submit" onclick="loginAsAdmin()">→ LOGIN</button>
+
+<div style="margin-top: 15px; text-align: center;">
+<button class="footer-link-btn" onclick="showResellerLogin()">
+◄ BACK TO RESELLER LOGIN
+</button>
+</div>
+</div>
+</div>
+
+<!-- ================= 3. لوحة تحكم الموزع ================= -->
+<div id="resellerPanel" class="hidden" style="width:100%;">
+<div class="header-bar">
+<div class="brand-logo" style="font-size: 1.2rem;">HAX_NON_ROOT<span>CLIENT</span></div>
+<div class="nav-btns">
+<button class="nav-btn active">👤 RESELLER</button>
+<button class="nav-btn" onclick="logout()">LOGOUT ➔</button>
+</div>
+</div>
+
+<div class="stat-card" style="margin-bottom: 16px;">
+<div class="auth-sub">YOUR RESELLER CODE</div>
+<div class="stat-value" id="resellerDisplayCode" style="color: var(--accent-glow);">--</div>
+<div class="auth-sub" style="margin-top: 10px;">YOUR BALANCE</div>
+<div class="stat-value" id="resellerDisplayBalance" style="color: var(--success-green); text-shadow: var(--neon-green-glow);">0.00</div>
+<div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">Created <span id="resellerKeysCountBadge" style="color: #fff; font-weight:700;">0</span> keys</div>
+</div>
+
+<div class="accordion-item">
+<div class="accordion-header active" onclick="toggleAccordion(this)">
+<span>⚡ GENERATE KEYS</span>
+<span class="accordion-icon">❯</span>
+</div>
+<div class="accordion-content show">
+
+<div style="font-size: 0.7rem; color: var(--accent-glow); font-weight: 700; text-align: right; margin-bottom: -6px;">مدة المفتاح (DURATION)</div>
+<select id="keyDurationSelect" class="input-field">
+<option value="3600000">1 Hour - 0.50</option>
+<option value="10800000">3 Hours - 1.00</option>
+<option value="21600000">6 Hours - 1.50</option>
+<option value="43200000">12 Hours - 2.00</option>
+<option value="86400000">24 Hours - 2.50</option>
+<option value="259200000">3 Days - 3.50</option>
+<option value="604800000">7 Days - 4.50</option>
+<option value="1296000000">15 Days - 6.00</option>
+<option value="2592000000" selected>30 Days - 10.00</option>
+</select>
+
+<div style="font-size: 0.7rem; color: var(--accent-glow); font-weight: 700; text-align: right; margin-bottom: -6px;">عدد الأجهزة المسموحة (ALLOWED DEVICES)</div>
+<select id="keyMaxDevicesSelect" class="input-field">
+<option value="1" selected>📱 جهاز 1 فقط (1 Device)</option>
+<option value="2">📱📱 جهازين (2 Devices)</option>
+<option value="3">📱📱📱 3 أجهزة (3 Devices)</option>
+<option value="5">💻 5 أجهزة (5 Devices)</option>
+</select>
+
+<div style="display:flex; align-items:center; gap:10px; margin-top:5px;">
+<input type="number" id="keyQuantityInput" class="input-field" value="1" min="1" max="10" inputmode="numeric" style="max-width:100px;" title="كمية المفاتيح (1-10)">
+<button class="btn-submit" id="generateBtn" onclick="generateKeys()">🔥 GENERATE KEYS</button>
+</div>
+</div>
+</div>
+
+<div id="newKeysResultBox" class="hidden" style="background:rgba(0,230,118,0.1); border:1px solid rgba(0,230,118,0.4); border-radius:16px; padding:15px; margin-bottom:12px; box-shadow: var(--neon-green-glow);">
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+<span style="font-size:0.75rem; color:var(--success-green); font-weight:900;">NEW KEYS (<span id="newKeysCountNum">1</span>)</span>
+</div>
+<div id="newKeysListContent" style="display:flex; flex-direction:column; gap:8px;"></div>
+</div>
+
+<div class="accordion-item">
+<div class="accordion-header active" onclick="toggleAccordion(this)">
+<span>🔑 MY KEYS</span>
+<span class="accordion-icon">❯</span>
+</div>
+<div class="accordion-content show">
+<button class="btn-danger-all" style="margin-bottom: 8px;" onclick="deleteAllResellerKeys()">🗑 DELETE ALL MY KEYS</button>
+<div id="resellerKeysList" style="max-height: 240px; overflow-y: auto; display:flex; flex-direction:column; gap:8px;">
+<div style="text-align:center; color:var(--text-muted); font-size:0.8rem;">No keys created yet</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ================= 4. لوحة تحكم الأدمن ================= -->
+<div id="adminPanel" class="hidden" style="width:100%;">
+<div class="header-bar">
+<div class="brand-logo" style="font-size: 1.2rem;">HAX_NON_ROOT<span>CLIENT</span></div>
+<div class="nav-btns">
+<button class="nav-btn active">⬡ ADMIN</button>
+<button class="nav-btn" onclick="logout()">LOGOUT ➔</button>
+</div>
+</div>
+
+<div class="stats-grid" style="margin-bottom: 16px;">
+<div class="stat-card">
+<div class="stat-value" id="statResellers">0</div>
+<div class="stat-label">RESELLERS</div>
+</div>
+<div class="stat-card">
+<div class="stat-value" id="statKeys">0</div>
+<div class="stat-label">KEYS</div>
+</div>
+<div class="stat-card">
+<div class="stat-value" id="statBalance" style="color:var(--success-green);">0.00</div>
+<div class="stat-label">BALANCE</div>
+</div>
+<div class="stat-card">
+<div class="stat-value" id="statPrice" style="color:var(--accent-glow);">1.00</div>
+<div class="stat-label">PRICE</div>
+</div>
+</div>
+
+<div class="accordion-item">
+<div class="accordion-header active" onclick="toggleAccordion(this)">
+<span>⚠️ SYSTEM KEYS CONTROL</span>
+<span class="accordion-icon">❯</span>
+</div>
+<div class="accordion-content show">
+<button class="btn-danger-all" onclick="deleteAllSystemKeys()">🔥 DELETE ALL KEYS IN SYSTEM</button>
+</div>
+</div>
+
+<div class="accordion-item">
+<div class="accordion-header active" onclick="toggleAccordion(this)">
+<span>🏷 KEY PRICE</span>
+<span class="accordion-icon">❯</span>
+</div>
+<div class="accordion-content show">
+<div style="text-align: center; margin-bottom: 4px;">
+<div style="font-size: 0.65rem; color: var(--text-muted); font-weight: 700;">CURRENT PRICE</div>
+<div style="font-family:'Orbitron'; font-size:1.6rem; color:var(--accent-glow); font-weight:800; text-shadow:var(--neon-glow);" id="currentPriceDisplay">1.00</div>
+</div>
+<input type="number" id="basePriceInput" class="input-field" value="1.00" step="0.1" inputmode="decimal">
+<button class="btn-submit" id="updatePriceBtn" onclick="updateBasePrice()">💾 UPDATE PRICE</button>
+</div>
+</div>
+
+<div class="accordion-item">
+<div class="accordion-header" onclick="toggleAccordion(this)">
+<span>👤 ADD RESELLER</span>
+<span class="accordion-icon">❯</span>
+</div>
+<div class="accordion-content">
+<input type="text" id="addResellerCode" class="input-field" placeholder="Reseller code" autocomplete="off">
+<input type="number" id="addResellerBal" class="input-field" placeholder="Initial Balance" value="10" inputmode="decimal">
+<button class="btn-submit" onclick="addNewReseller()">➕ ADD RESELLER</button>
+</div>
+</div>
+
+<div class="accordion-item">
+<div class="accordion-header" onclick="toggleAccordion(this)">
+<span>💲 CHARGE & MANAGE BALANCE</span>
+<span class="accordion-icon">❯</span>
+</div>
+<div class="accordion-content">
+<select id="chargeSelectReseller" class="input-field"></select>
+<input type="number" id="chargeAmount" class="input-field" placeholder="المبلغ (اضافه أو خصم)" inputmode="decimal">
+<div style="display:flex; gap:10px;">
+<button class="btn-submit" style="background:linear-gradient(135deg, #00E676, #E50914); box-shadow:var(--neon-green-glow);" onclick="chargeResellerBalance('add')">➕ إضافة رصيد</button>
+<button class="btn-submit" style="background:linear-gradient(135deg, #FF1744, #C62828); box-shadow:0 0 15px rgba(255,23,68,0.4);" onclick="chargeResellerBalance('deduct')">➖ خصم رصيد</button>
+</div>
+</div>
+</div>
+
+<div class="accordion-item">
+<div class="accordion-header active" onclick="toggleAccordion(this)">
+<span>👥 RESELLERS <span style="font-size:0.75rem; color:var(--accent-glow);" id="totalResellersCount">0 TOTAL</span></span>
+<span class="accordion-icon">❯</span>
+</div>
+<div class="accordion-content show">
+<div class="table-header-action">
+<label style="font-size: 0.75rem; color: var(--text-muted); cursor: pointer; display:flex; align-items:center; gap:5px;">
+<input type="checkbox" id="selectAllCb" onchange="toggleSelectAll(this)"> Select All
+</label>
+<button class="btn-delete-selected" onclick="deleteSelectedResellers()">DELETE SELECTED</button>
+</div>
+<table class="resellers-table">
+<thead>
+<tr>
+<th style="width:20px">#</th>
+<th>CODE</th>
+<th>BAL</th>
+<th>KEYS</th>
+<th style="text-align:center">ACTION</th>
+</tr>
+</thead>
+<tbody id="adminResellersTableBody"></tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+<div id="msg" class="msg-box"></div>
+</div>
+
+<script>
+const WEB_API_KEY = 'YOUR_HAX_NON_ROOT_FIREBASE_WEB_API_KEY';
+const FIREBASE_URL = 'https://YOUR_HAX_NON_ROOT_FIREBASE_DATABASE/';
+const ADMIN_PASS_B64 = ''; // Configure admin authentication privately; never store an admin password in this public file.
+const WORKER_URL = 'https://YOUR_HAX_NON_ROOT_API_HOST/generate';
+const UPDATE_PRICE_URL = 'https://YOUR_HAX_NON_ROOT_API_HOST/update-price';
+const APP_LINK = 'https://YOUR_HAX_NON_ROOT_APP_URL/';
+
+let activeReseller = null;
+let cachedToken = null;
+let tokenExpiry = 0;
+let genBusy = false;
+let priceBusy = false;
+let msgTimer = null;
+
+const $ = (id) => document.getElementById(id);
+
+function escHtml(s) {
+  return String(s === null || s === undefined ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function showMsg(txt, color) {
+  const msg = $('msg');
+  if (!msg) return;
+  msg.style.color = color;
+  msg.textContent = txt;
+  try { msg.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {}
+  clearTimeout(msgTimer);
+  msgTimer = setTimeout(() => { msg.textContent = ''; }, 4000);
+}
+
+function toggleAccordion(header) {
+  header.classList.toggle('active');
+  const content = header.nextElementSibling;
+  content.classList.toggle('show');
+}
+
+function showAdminLogin() {
+  $('resellerLoginView').classList.add('hidden');
+  $('adminLoginView').classList.remove('hidden');
+}
+
+function showResellerLogin() {
+  $('adminLoginView').classList.add('hidden');
+  $('resellerLoginView').classList.remove('hidden');
+}
+
+function logout() {
+  activeReseller = null;
+  $('resellerPanel').classList.add('hidden');
+  $('adminPanel').classList.add('hidden');
+  $('adminLoginView').classList.add('hidden');
+  $('resellerLoginView').classList.remove('hidden');
+  $('resellerInputCode').value = '';
+  $('adminInputPass').value = '';
+  $('newKeysResultBox').classList.add('hidden');
+  $('newKeysListContent').innerHTML = '';
+}
+
+/* ---------- Firebase auth + helpers ---------- */
+async function getAuthToken() {
+  if (cachedToken && Date.now() < tokenExpiry) return cachedToken;
+  const res = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + WEB_API_KEY, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ returnSecureToken: true })
+  });
+  const data = await res.json();
+  if (!data || !data.idToken) throw new Error('Anonymous sign-in failed');
+  cachedToken = data.idToken;
+  tokenExpiry = Date.now() + (parseInt(data.expiresIn || '3600', 10) - 120) * 1000;
+  return cachedToken;
+}
+
+async function fb(method, path, body, query) {
+  const token = await getAuthToken();
+  const url = FIREBASE_URL + path + '.json?' + (query ? query + '&' : '') + 'auth=' + encodeURIComponent(token);
+  const res = await fetch(url, {
+    method: method,
+    headers: { 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error('Firebase error ' + res.status);
+  return res.json();
+}
+
+function normalizeCode(raw) {
+  const code = String(raw || '').trim().replace(/\s+/g, '_');
+  if (!code || /[.#$\[\]\/]/.test(code)) return '';
+  return code;
+}
+
+function toNum(v) {
+  const n = parseFloat(v);
+  return isNaN(n) ? 0 : n;
+}
+
+/* ---------- Login ---------- */
+async function loginAsReseller() {
+  const code = normalizeCode($('resellerInputCode').value);
+  if (!code) { showMsg('⚠ Enter a valid reseller code!', 'var(--danger-red)'); return; }
+
+  showMsg('⏳ Checking...', 'var(--accent-glow)');
+  try {
+    const data = await fb('GET', 'resellers/' + code);
+    if (data === null) {
+      showMsg('❌ Reseller code not found!', 'var(--danger-red)');
+      return;
+    }
+    activeReseller = code;
+    $('resellerLoginView').classList.add('hidden');
+    $('resellerPanel').classList.remove('hidden');
+    $('resellerDisplayCode').textContent = code;
+    $('msg').textContent = '';
+    loadResellerPanelData();
+  } catch (e) {
+    showMsg('❌ Connection failed!', 'var(--danger-red)');
+  }
+}
+
+async function loginAsAdmin() {
+  const pass = $('adminInputPass').value;
+  if (!pass) { showMsg('⚠ Enter password!', 'var(--danger-red)'); return; }
+  if (btoa(pass) !== ADMIN_PASS_B64) { showMsg('❌ Incorrect Admin Password!', 'var(--danger-red)'); return; }
+  try {
+    await getAuthToken();
+    $('adminLoginView').classList.add('hidden');
+    $('adminPanel').classList.remove('hidden');
+    $('msg').textContent = '';
+    loadAdminDashboard();
+  } catch (e) {
+    showMsg('❌ Connection error!', 'var(--danger-red)');
+  }
+}
+
+/* ---------- Reseller panel ---------- */
+async function loadResellerPanelData() {
+  if (!activeReseller) return;
+  try {
+    const data = await fb('GET', 'resellers/' + activeReseller);
+    if (data === null) {
+      showMsg('❌ This reseller account no longer exists!', 'var(--danger-red)');
+      logout();
+      return;
+    }
+    const isObj = typeof data === 'object';
+    const bal = isObj ? toNum(data.balance) : toNum(data);
+    $('resellerDisplayBalance').textContent = bal.toFixed(2);
+
+    const myKeys = (isObj && data.my_keys && typeof data.my_keys === 'object') ? data.my_keys : {};
+    const names = Object.keys(myKeys);
+    $('resellerKeysCountBadge').textContent = names.length;
+
+    const box = $('resellerKeysList');
+    if (!names.length) {
+      box.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:0.8rem;">No keys created yet</div>';
+      return;
+    }
+    let html = '';
+    names.forEach((k, i) => {
+      const info = (myKeys[k] && typeof myKeys[k] === 'object') ? myKeys[k] : {};
+      const durationText = info.durationText || 'Custom';
+      const devices = info.devicesAllowed || '1';
+      html += '<div style="background:rgba(10,13,20,0.9); border:1px solid rgba(229,9,20,0.25); padding:12px; border-radius:12px; display:flex; justify-content:space-between; align-items:center; gap:8px;">' +
+        '<div style="min-width:0;">' +
+        '<div class="code-text" style="color:var(--accent-glow);"><span style="color:var(--text-muted); font-size:0.75rem;">#' + (i + 1) + '</span> ' + escHtml(k) + '</div>' +
+        '<div style="font-size:0.7rem; color:var(--text-muted);">' + escHtml(durationText) + ' | 📱 devices: ' + escHtml(devices) + ' <span style="color:var(--success-green); margin-left:6px; font-weight:700;">[READY]</span></div>' +
+        '</div>' +
+        '<div style="display:flex; gap:6px; align-items:center;">' +
+        '<button class="btn-share-vibrant" data-act="share" data-k="' + escHtml(k) + '" data-d="' + escHtml(durationText) + '" data-v="' + escHtml(devices) + '">📲 SHARE</button>' +
+        '<button class="btn-trash" data-act="delkey" data-k="' + escHtml(k) + '">🗑</button>' +
+        '</div></div>';
+    });
+    box.innerHTML = html;
+  } catch (e) {
+    showMsg('❌ Error loading data', 'var(--danger-red)');
+  }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) {}
+  document.body.removeChild(ta);
+  return ok;
+}
+
+function copyText(text, okMsg) {
+  const done = () => showMsg(okMsg || '✅ Copied!', 'var(--success-green)');
+  const fail = () => showMsg('❌ Copy failed!', 'var(--danger-red)');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => { fallbackCopy(text) ? done() : fail(); });
+  } else {
+    fallbackCopy(text) ? done() : fail();
+  }
+}
+
+function copyFullClientText(key, duration, devices) {
+  const fullText = '🔥 HAX_NON_ROOT CLIENT 🔥\n\n🔑 Key: ' + key + '\n⏱ Duration: ' + duration + '\n📱 Allowed Devices: ' + (devices || '1') + '\n🌐 App Link: ' + APP_LINK + '\n\nEnjoy your access!';
+  copyText(fullText, '✅ Shared Text Copied!');
+}
+
+async function deleteResellerKey(keyName) {
+  if (!activeReseller) return;
+  if (!confirm('هل أنت متأكد من حذف المفتاح: ' + keyName + '؟')) return;
+  showMsg('⏳ جاري الحذف...', 'var(--accent-glow)');
+  try {
+    await fb('DELETE', 'keys/' + keyName);
+    await fb('DELETE', 'resellers/' + activeReseller + '/my_keys/' + keyName);
+    showMsg('✅ تم حذف المفتاح بنجاح!', 'var(--success-green)');
+    loadResellerPanelData();
+  } catch (e) {
+    showMsg('❌ حدث خطأ أثناء الحذف', 'var(--danger-red)');
+  }
+}
+
+async function deleteAllResellerKeys() {
+  if (!activeReseller) return;
+  if (!confirm('⚠️ هل أنت متأكد من حذف جميع المفاتيح الخاصة بك؟')) return;
+  showMsg('⏳ جاري حذف كافة المفاتيح الخاصة بك...', 'var(--accent-glow)');
+  try {
+    const myKeys = await fb('GET', 'resellers/' + activeReseller + '/my_keys', undefined, 'shallow=true');
+    if (myKeys && typeof myKeys === 'object') {
+      const patch = {};
+      Object.keys(myKeys).forEach((k) => { patch[k] = null; });
+      await fb('PATCH', 'keys', patch);
+      await fb('DELETE', 'resellers/' + activeReseller + '/my_keys');
+    }
+    showMsg('✅ تم حذف جميع المفاتيح الخاصة بك بنجاح!', 'var(--success-green)');
+    $('newKeysResultBox').classList.add('hidden');
+    loadResellerPanelData();
+  } catch (e) {
+    showMsg('❌ حدث خطأ أثناء الحذف الكلي', 'var(--danger-red)');
+  }
+}
+
+/* ---------- Generate keys (via Worker only) ---------- */
+function extractKeys(d) {
+  let list = [];
+  if (Array.isArray(d)) list = d;
+  else if (d && typeof d === 'object') {
+    const src = d.keys || d.generatedKeys || d.data || d.result;
+    if (Array.isArray(src)) list = src;
+    else if (src && typeof src === 'object') list = Object.keys(src);
+    else if (typeof d.key === 'string') list = [d.key];
+  }
+  return list
+    .map((x) => (typeof x === 'string' ? x : (x && (x.key || x.id || x.code))))
+    .filter(Boolean);
+}
+
+async function generateKeys() {
+  if (genBusy || !activeReseller) return;
+
+  const sel = $('keyDurationSelect');
+  const durationMs = Number(sel.value);
+  const durationText = sel.options[sel.selectedIndex].text.split(' - ')[0];
+  const devicesAllowed = Number($('keyMaxDevicesSelect').value);
+  const qty = parseInt($('keyQuantityInput').value, 10);
+
+  if (isNaN(qty) || qty < 1 || qty > 10) {
+    showMsg('⚠ Quantity must be between 1 and 10!', 'var(--danger-red)');
+    return;
+  }
+
+  genBusy = true;
+  const btn = $('generateBtn');
+  btn.disabled = true;
+  showMsg('⏳ Generating keys...', 'var(--accent-glow)');
+
+  try {
+    const adminToken = await getAuthToken();
+
+    const price = await fb('GET', 'settings/price');
+    if (price !== null && !isNaN(price)) {
+      const bal = toNum(await fb('GET', 'resellers/' + activeReseller + '/balance'));
+      if (bal < parseFloat(price) * qty) {
+        showMsg('❌ Insufficient balance!', 'var(--danger-red)');
+        return;
+      }
+    }
+
+    const res = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        resellerCode: activeReseller,
+        durationMs: durationMs,
+        durationText: durationText,
+        devicesAllowed: devicesAllowed,
+        qty: qty,
+        adminToken: adminToken
+      })
+    });
+
+    let data = null;
+    try { data = await res.json(); } catch (e) {}
+
+    if (!res.ok) {
+      const reason = data && (data.error || data.message);
+      throw new Error(reason ? String(reason) : 'Server error ' + res.status);
+    }
+
+    const keys = extractKeys(data);
+    if (!keys.length) {
+      showMsg('⚠ The server returned no keys!', 'var(--danger-red)');
+      loadResellerPanelData();
+      return;
+    }
+
+    $('newKeysCountNum').textContent = keys.length;
+    let html = '';
+    keys.forEach((k, index) => {
+      html += '<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; background:rgba(3,4,7,0.9); padding:10px 14px; border-radius:10px; border:1px solid rgba(0,230,118,0.3);">' +
+        '<div style="min-width:0;"><span style="font-size:0.75rem; color:var(--text-muted);">#' + (index + 1) + '</span> <span class="code-text" style="color:var(--success-green);">' + escHtml(k) + '</span></div>' +
+        '<button class="btn-share-vibrant" data-act="share" data-k="' + escHtml(k) + '" data-d="' + escHtml(durationText) + '" data-v="' + escHtml(devicesAllowed) + '">📲 SHARE</button>' +
+        '</div>';
+    });
+    $('newKeysListContent').innerHTML = html;
+    $('newKeysResultBox').classList.remove('hidden');
+
+    showMsg('✅ Keys generated successfully!', 'var(--success-green)');
+    loadResellerPanelData();
+  } catch (e) {
+    showMsg('❌ ' + (e && e.message ? e.message : 'Error generating keys!'), 'var(--danger-red)');
+  } finally {
+    genBusy = false;
+    btn.disabled = false;
+  }
+}
+
+/* ---------- Admin ---------- */
+async function loadAdminDashboard() {
+  try {
+    const priceData = await fb('GET', 'settings/price');
+    const currentPrice = (priceData !== null && !isNaN(priceData)) ? parseFloat(priceData) : 1.00;
+    $('statPrice').textContent = currentPrice.toFixed(2);
+    $('currentPriceDisplay').textContent = currentPrice.toFixed(2);
+    $('basePriceInput').value = currentPrice.toFixed(2);
+
+    const keysData = await fb('GET', 'keys', undefined, 'shallow=true');
+    $('statKeys').textContent = (keysData && typeof keysData === 'object') ? Object.keys(keysData).length : 0;
+
+    const resesData = await fb('GET', 'resellers');
+    const tbody = $('adminResellersTableBody');
+    const chargeSelect = $('chargeSelectReseller');
+    tbody.innerHTML = '';
+    chargeSelect.innerHTML = '';
+    const ph = document.createElement('option');
+    ph.value = '';
+    ph.textContent = 'Select Reseller';
+    chargeSelect.appendChild(ph);
+
+    let totalResellers = 0;
+    let totalBalance = 0;
+    let rows = '';
+
+    if (resesData && typeof resesData === 'object') {
+      Object.keys(resesData).forEach((code) => {
+        const obj = resesData[code];
+        let bal = 0;
+        let keysCount = 0;
+        if (obj && typeof obj === 'object') {
+          bal = toNum(obj.balance);
+          keysCount = (obj.my_keys && typeof obj.my_keys === 'object') ? Object.keys(obj.my_keys).length : 0;
+        } else {
+          bal = toNum(obj);
+        }
+        totalBalance += bal;
+        totalResellers++;
+
+        const opt = document.createElement('option');
+        opt.value = code;
+        opt.textContent = code + ' (Bal: ' + bal.toFixed(2) + ')';
+        chargeSelect.appendChild(opt);
+
+        rows += '<tr><td><input type="checkbox" class="reseller-cb" value="' + escHtml(code) + '"></td>' +
+          '<td class="code-text">' + escHtml(code) + '</td>' +
+          '<td class="val-green">' + bal.toFixed(2) + '</td>' +
+          '<td class="val-num" style="color:#fff;">' + keysCount + '</td>' +
+          '<td style="text-align:center"><button class="btn-trash" data-act="delres" data-c="' + escHtml(code) + '">🗑</button></td></tr>';
+      });
+    }
+    tbody.innerHTML = rows;
+    $('selectAllCb').checked = false;
+
+    $('statResellers').textContent = totalResellers;
+    $('totalResellersCount').textContent = totalResellers + ' TOTAL';
+    $('statBalance').textContent = totalBalance.toFixed(2);
+  } catch (e) {
+    showMsg('❌ Error loading dashboard', 'var(--danger-red)');
+  }
+}
+
+async function updateBasePrice() {
+  if (priceBusy) return;
+  const p = parseFloat($('basePriceInput').value);
+  if (isNaN(p) || p < 0) { showMsg('⚠ Enter a valid price!', 'var(--danger-red)'); return; }
+  const adminPass = prompt("أدخل كلمة مرور الأدمن لتأكيد تغيير السعر:");
+  if (!adminPass) { showMsg('⚠ Password required!', 'var(--danger-red)'); return; }
+  priceBusy = true;
+  const btn = $('updatePriceBtn');
+  btn.disabled = true;
+  showMsg('⏳ Updating price...', 'var(--accent-glow)');
+  try {
+    const adminToken = await getAuthToken();
+    const res = await fetch(UPDATE_PRICE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ price: p, adminToken: adminToken, adminPass: adminPass })
+    });
+    let data = null;
+    try { data = await res.json(); } catch (e) {}
+    if (!res.ok) {
+      const reason = data && (data.error || data.message);
+      throw new Error(reason ? String(reason) : 'Server error ' + res.status);
+    }
+    showMsg('✅ Price updated successfully!', 'var(--success-green)');
+    loadAdminDashboard();
+  } catch (e) {
+    showMsg('❌ ' + (e && e.message ? e.message : 'Error updating price'), 'var(--danger-red)');
+  } finally {
+    priceBusy = false;
+    btn.disabled = false;
+  }
+}
+
+async function addNewReseller() {
+  const rawCode = $('addResellerCode').value;
+  const code = normalizeCode(rawCode);
+  const bal = parseFloat($('addResellerBal').value);
+
+  if (!code) { showMsg('⚠ Enter a valid reseller code!', 'var(--danger-red)'); return; }
+  if (isNaN(bal) || bal < 0) { showMsg('⚠ Enter a valid balance!', 'var(--danger-red)'); return; }
+
+  try {
+    const existing = await fb('GET', 'resellers/' + code);
+    if (existing !== null) { showMsg('⚠ This reseller already exists!', 'var(--danger-red)'); return; }
+    await fb('PUT', 'resellers/' + code, { name: rawCode.trim(), balance: bal, createdAt: Date.now() });
+    showMsg('✅ Reseller ' + code + ' added successfully!', 'var(--success-green)');
+    $('addResellerCode').value = '';
+    $('addResellerBal').value = '10';
+    loadAdminDashboard();
+  } catch (e) {
+    showMsg('❌ Permission denied or error adding reseller', 'var(--danger-red)');
+  }
+}
+
+async function chargeResellerBalance(action) {
+  const code = $('chargeSelectReseller').value;
+  const amt = parseFloat($('chargeAmount').value);
+  if (!code || isNaN(amt) || amt <= 0) { showMsg('⚠ Select reseller & amount!', 'var(--danger-red)'); return; }
+
+  try {
+    const obj = await fb('GET', 'resellers/' + code);
+    if (obj === null) { showMsg('❌ Reseller not found!', 'var(--danger-red)'); return; }
+    const currentBal = (typeof obj === 'object') ? toNum(obj.balance) : toNum(obj);
+    const newBal = action === 'add' ? currentBal + amt : currentBal - amt;
+    if (newBal < 0) { showMsg('❌ Balance is not enough to deduct!', 'var(--danger-red)'); return; }
+
+    if (typeof obj === 'object') {
+      await fb('PUT', 'resellers/' + code + '/balance', newBal);
+    } else {
+      await fb('PUT', 'resellers/' + code, { balance: newBal });
+    }
+    $('chargeAmount').value = '';
+    showMsg('⚡ Success! New Balance: ' + newBal.toFixed(2), 'var(--success-green)');
+    loadAdminDashboard();
+  } catch (e) {
+    showMsg('❌ Error charging balance', 'var(--danger-red)');
+  }
+}
+
+function toggleSelectAll(master) {
+  document.querySelectorAll('.reseller-cb').forEach((cb) => { cb.checked = master.checked; });
+}
+
+async function deleteSelectedResellers() {
+  const selected = Array.from(document.querySelectorAll('.reseller-cb:checked')).map((cb) => cb.value);
+  if (!selected.length) { showMsg('⚠ No resellers selected!', 'var(--danger-red)'); return; }
+  if (!confirm('Delete ' + selected.length + ' resellers?')) return;
+  try {
+    const patch = {};
+    selected.forEach((c) => { patch[c] = null; });
+    await fb('PATCH', 'resellers', patch);
+    showMsg('🗑 Deleted successfully!', 'var(--success-green)');
+    loadAdminDashboard();
+  } catch (e) {
+    showMsg('❌ Error deleting resellers', 'var(--danger-red)');
+  }
+}
+
+async function deleteReseller(code) {
+  if (!confirm('Delete ' + code + '?')) return;
+  try {
+    await fb('DELETE', 'resellers/' + code);
+    showMsg('🗑 Deleted successfully!', 'var(--success-green)');
+    loadAdminDashboard();
+  } catch (e) {
+    showMsg('❌ Error deleting reseller', 'var(--danger-red)');
+  }
+}
+
+async function deleteAllSystemKeys() {
+  if (!confirm('⚠️ تحذير أدمن: هل أنت متأكد من حذف جميع المفاتيح في كامل الموقع والنظام لجميع الموزعين؟')) return;
+  showMsg('⏳ جاري مسح كافة المفاتيح من النظام...', 'var(--accent-glow)');
+  try {
+    await fb('DELETE', 'keys');
+    const list = await fb('GET', 'resellers', undefined, 'shallow=true');
+    if (list && typeof list === 'object') {
+      for (const code of Object.keys(list)) {
+        await fb('DELETE', 'resellers/' + code + '/my_keys');
+      }
+    }
+    showMsg('⚡ تم حذف جميع المفاتيح من الموقع بنجاح!', 'var(--success-green)');
+    loadAdminDashboard();
+  } catch (e) {
+    showMsg('❌ حدث خطأ أثناء مسح المفاتيح', 'var(--danger-red)');
+  }
+}
+
+/* ---------- Events ---------- */
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  const act = el.getAttribute('data-act');
+  if (act === 'share') copyFullClientText(el.getAttribute('data-k'), el.getAttribute('data-d'), el.getAttribute('data-v'));
+  else if (act === 'delkey') deleteResellerKey(el.getAttribute('data-k'));
+  else if (act === 'delres') deleteReseller(el.getAttribute('data-c'));
+});
+
+$('resellerInputCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') loginAsReseller(); });
+$('adminInputPass').addEventListener('keydown', (e) => { if (e.key === 'Enter') loginAsAdmin(); });
+</script>
+
+</body>
+  </html>
