@@ -1,5 +1,5 @@
-window.HAX_RESELLER_CONFIG = {
-  // Leave empty when this app and its API run on the same domain.
-  // For a separate frontend, enter the exact API origin later.
+window.HAX_SITE_CONFIG = {
+  // Keep empty when the interface is served by this HAX_RESELLER service.
+  // For a separate frontend, set this to the exact deployed API origin.
   API_BASE_URL: ""
 };
