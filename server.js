@@ -18,6 +18,7 @@ const PORT = Number(process.env.PORT || 3000);
 const JWT_SECRET = process.env.JWT_SECRET || "";
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
+const ADMIN_PASSWORD_HASH = bcrypt.hash(ADMIN_PASSWORD, 10);
 const DATA_FILE = process.env.DATA_FILE || path.join(__dirname, "data", "store.json");
 const PUBLIC_DIR = path.join(__dirname, "public");
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || "").split(",").map(v => v.trim()).filter(Boolean);
@@ -147,7 +148,7 @@ app.get("/health", (_req, res) => res.json({ ok: true, service: "HAX_RESELLER" }
 app.post("/api/auth/admin/login", authLimiter, async (req, res) => {
   const username = String(req.body?.username || "");
   const password = String(req.body?.password || "");
-  const expectedHash = await bcrypt.hash(ADMIN_PASSWORD, 10);
+  const expectedHash = await ADMIN_PASSWORD_HASH;
   const validUser = username === ADMIN_USERNAME;
   const validPass = await bcrypt.compare(password, expectedHash);
   if (!validUser || !validPass) return res.status(401).json({ error: "بيانات الدخول غير صحيحة." });
