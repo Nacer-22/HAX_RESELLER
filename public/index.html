@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HAX_NON_ROOT CLIENT - Secure Dashboard</title>
+<title>HAX_NON_ROOT CLIENT | لوحة الموزعين</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -11,7 +11,7 @@
 --card-bg: #0A0D14;
 --card-border: rgba(229, 9, 20, 0.25);
 --accent-blue: #E50914;
---accent-glow: #FF3B30;
+--accent-glow: #FF4D5A;
 --text-white: #ffffff;
 --text-muted: #78909C;
 --danger-red: #FF1744;
@@ -22,7 +22,7 @@
 }
 * { box-sizing: border-box; font-family: 'Cairo', sans-serif; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 body {
-background: radial-gradient(circle at center, #160607 0%, var(--bg-dark) 100%);
+background: radial-gradient(circle at center, #180609 0%, var(--bg-dark) 100%);
 color: var(--text-white);
 min-height: 100vh;
 padding: 20px 15px;
@@ -59,7 +59,7 @@ letter-spacing: 1.5px;
 font-style: italic;
 line-height: 1.1;
 color: #fff;
-text-shadow: 0 0 10px rgba(229,9,20,0.5);
+text-shadow: 0 0 10px rgba(229, 9, 20, 0.5);
 }
 .brand-logo span { display: block; font-size: 0.75rem; color: var(--accent-glow); letter-spacing: 3px; font-style: normal; margin-top: 2px; text-shadow: 0 0 8px var(--accent-glow); }
 .top-pill-btn {
@@ -100,8 +100,8 @@ transition: 0.3s;
 }
 .nav-btn.active { color: var(--accent-glow); border-color: var(--accent-glow); box-shadow: var(--neon-glow); }
 .btn-share-vibrant {
-background: linear-gradient(135deg, #E50914, #B20710);
-border: 1px solid #FF3B30;
+background: linear-gradient(135deg, #E50914, #A80712);
+border: 1px solid #FF4D5A;
 color: #fff;
 padding: 8px 14px;
 border-radius: 12px;
@@ -192,7 +192,7 @@ box-shadow: inset 0 0 8px rgba(0,0,0,0.8);
 .input-field:focus { border-color: var(--accent-glow); box-shadow: var(--neon-glow), inset 0 0 8px rgba(229, 9, 20, 0.2); }
 .btn-submit {
 width: 100%;
-background: linear-gradient(135deg, #B20710, #E50914);
+background: linear-gradient(135deg, #A80712, #E50914);
 border: 1px solid var(--accent-glow);
 border-radius: 12px;
 color: #fff;
@@ -271,7 +271,7 @@ box-shadow: 0 0 10px rgba(255, 23, 68, 0.3);
 transition: 0.3s;
 }
 .btn-trash:hover { background: rgba(255, 23, 68, 0.3); box-shadow: 0 0 15px rgba(255, 23, 68, 0.6); }
-.msg-box { font-size: 0.8rem; text-align: center; min-height: 18px; margin-top: 4px; font-weight: 700; text-shadow: 0 0 10px rgba(229,9,20,0.4); }
+.msg-box { font-size: 0.8rem; text-align: center; min-height: 18px; margin-top: 4px; font-weight: 700; text-shadow: 0 0 10px rgba(229, 9, 20, 0.4); }
 .hidden { display: none !important; }
 .auth-container-center {
 display: flex;
@@ -342,6 +342,7 @@ HAX_NON_ROOT
 <div class="auth-sub">RESTRICTED AREA<br>AUTHORIZED PERSONNEL ONLY</div>
 
 <div style="position: relative; display: flex; align-items: center; margin-top: 10px;">
+<input type="text" id="adminInputUser" class="input-field" placeholder="ENTER ADMIN USERNAME" autocomplete="username" style="text-align:center;">
 <input type="password" id="adminInputPass" class="input-field" placeholder="ENTER ADMIN PASSWORD" autocomplete="off" style="padding-left: 45px; text-align: center;">
 <span style="position: absolute; left: 16px; color: var(--accent-glow); font-size: 0.9rem;">🔒</span>
 </div>
@@ -454,8 +455,8 @@ HAX_NON_ROOT
 <div class="stat-label">BALANCE</div>
 </div>
 <div class="stat-card">
-<div class="stat-value" id="statPrice" style="color:var(--accent-glow);">1.00</div>
-<div class="stat-label">PRICE</div>
+<div class="stat-value" id="statPrice">0</div>
+<div class="stat-label">ACTIVE KEYS</div>
 </div>
 </div>
 
@@ -470,27 +471,12 @@ HAX_NON_ROOT
 </div>
 
 <div class="accordion-item">
-<div class="accordion-header active" onclick="toggleAccordion(this)">
-<span>🏷 KEY PRICE</span>
-<span class="accordion-icon">❯</span>
-</div>
-<div class="accordion-content show">
-<div style="text-align: center; margin-bottom: 4px;">
-<div style="font-size: 0.65rem; color: var(--text-muted); font-weight: 700;">CURRENT PRICE</div>
-<div style="font-family:'Orbitron'; font-size:1.6rem; color:var(--accent-glow); font-weight:800; text-shadow:var(--neon-glow);" id="currentPriceDisplay">1.00</div>
-</div>
-<input type="number" id="basePriceInput" class="input-field" value="1.00" step="0.1" inputmode="decimal">
-<button class="btn-submit" id="updatePriceBtn" onclick="updateBasePrice()">💾 UPDATE PRICE</button>
-</div>
-</div>
-
-<div class="accordion-item">
 <div class="accordion-header" onclick="toggleAccordion(this)">
 <span>👤 ADD RESELLER</span>
 <span class="accordion-icon">❯</span>
 </div>
 <div class="accordion-content">
-<input type="text" id="addResellerCode" class="input-field" placeholder="Reseller code" autocomplete="off">
+<input type="text" id="addResellerName" class="input-field" placeholder="Reseller name" autocomplete="off">
 <input type="number" id="addResellerBal" class="input-field" placeholder="Initial Balance" value="10" inputmode="decimal">
 <button class="btn-submit" onclick="addNewReseller()">➕ ADD RESELLER</button>
 </div>
@@ -543,547 +529,9 @@ HAX_NON_ROOT
 <div id="msg" class="msg-box"></div>
 </div>
 
-<script>
-const WEB_API_KEY = 'YOUR_HAX_NON_ROOT_FIREBASE_WEB_API_KEY';
-const FIREBASE_URL = 'https://YOUR_HAX_NON_ROOT_FIREBASE_DATABASE/';
-const ADMIN_PASS_B64 = ''; // Configure admin authentication privately; never store an admin password in this public file.
-const WORKER_URL = 'https://YOUR_HAX_NON_ROOT_API_HOST/generate';
-const UPDATE_PRICE_URL = 'https://YOUR_HAX_NON_ROOT_API_HOST/update-price';
-const APP_LINK = 'https://YOUR_HAX_NON_ROOT_APP_URL/';
 
-let activeReseller = null;
-let cachedToken = null;
-let tokenExpiry = 0;
-let genBusy = false;
-let priceBusy = false;
-let msgTimer = null;
 
-const $ = (id) => document.getElementById(id);
-
-function escHtml(s) {
-  return String(s === null || s === undefined ? '' : s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
-function showMsg(txt, color) {
-  const msg = $('msg');
-  if (!msg) return;
-  msg.style.color = color;
-  msg.textContent = txt;
-  try { msg.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {}
-  clearTimeout(msgTimer);
-  msgTimer = setTimeout(() => { msg.textContent = ''; }, 4000);
-}
-
-function toggleAccordion(header) {
-  header.classList.toggle('active');
-  const content = header.nextElementSibling;
-  content.classList.toggle('show');
-}
-
-function showAdminLogin() {
-  $('resellerLoginView').classList.add('hidden');
-  $('adminLoginView').classList.remove('hidden');
-}
-
-function showResellerLogin() {
-  $('adminLoginView').classList.add('hidden');
-  $('resellerLoginView').classList.remove('hidden');
-}
-
-function logout() {
-  activeReseller = null;
-  $('resellerPanel').classList.add('hidden');
-  $('adminPanel').classList.add('hidden');
-  $('adminLoginView').classList.add('hidden');
-  $('resellerLoginView').classList.remove('hidden');
-  $('resellerInputCode').value = '';
-  $('adminInputPass').value = '';
-  $('newKeysResultBox').classList.add('hidden');
-  $('newKeysListContent').innerHTML = '';
-}
-
-/* ---------- Firebase auth + helpers ---------- */
-async function getAuthToken() {
-  if (cachedToken && Date.now() < tokenExpiry) return cachedToken;
-  const res = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + WEB_API_KEY, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ returnSecureToken: true })
-  });
-  const data = await res.json();
-  if (!data || !data.idToken) throw new Error('Anonymous sign-in failed');
-  cachedToken = data.idToken;
-  tokenExpiry = Date.now() + (parseInt(data.expiresIn || '3600', 10) - 120) * 1000;
-  return cachedToken;
-}
-
-async function fb(method, path, body, query) {
-  const token = await getAuthToken();
-  const url = FIREBASE_URL + path + '.json?' + (query ? query + '&' : '') + 'auth=' + encodeURIComponent(token);
-  const res = await fetch(url, {
-    method: method,
-    headers: { 'Content-Type': 'application/json' },
-    body: body === undefined ? undefined : JSON.stringify(body)
-  });
-  if (!res.ok) throw new Error('Firebase error ' + res.status);
-  return res.json();
-}
-
-function normalizeCode(raw) {
-  const code = String(raw || '').trim().replace(/\s+/g, '_');
-  if (!code || /[.#$\[\]\/]/.test(code)) return '';
-  return code;
-}
-
-function toNum(v) {
-  const n = parseFloat(v);
-  return isNaN(n) ? 0 : n;
-}
-
-/* ---------- Login ---------- */
-async function loginAsReseller() {
-  const code = normalizeCode($('resellerInputCode').value);
-  if (!code) { showMsg('⚠ Enter a valid reseller code!', 'var(--danger-red)'); return; }
-
-  showMsg('⏳ Checking...', 'var(--accent-glow)');
-  try {
-    const data = await fb('GET', 'resellers/' + code);
-    if (data === null) {
-      showMsg('❌ Reseller code not found!', 'var(--danger-red)');
-      return;
-    }
-    activeReseller = code;
-    $('resellerLoginView').classList.add('hidden');
-    $('resellerPanel').classList.remove('hidden');
-    $('resellerDisplayCode').textContent = code;
-    $('msg').textContent = '';
-    loadResellerPanelData();
-  } catch (e) {
-    showMsg('❌ Connection failed!', 'var(--danger-red)');
-  }
-}
-
-async function loginAsAdmin() {
-  const pass = $('adminInputPass').value;
-  if (!pass) { showMsg('⚠ Enter password!', 'var(--danger-red)'); return; }
-  if (btoa(pass) !== ADMIN_PASS_B64) { showMsg('❌ Incorrect Admin Password!', 'var(--danger-red)'); return; }
-  try {
-    await getAuthToken();
-    $('adminLoginView').classList.add('hidden');
-    $('adminPanel').classList.remove('hidden');
-    $('msg').textContent = '';
-    loadAdminDashboard();
-  } catch (e) {
-    showMsg('❌ Connection error!', 'var(--danger-red)');
-  }
-}
-
-/* ---------- Reseller panel ---------- */
-async function loadResellerPanelData() {
-  if (!activeReseller) return;
-  try {
-    const data = await fb('GET', 'resellers/' + activeReseller);
-    if (data === null) {
-      showMsg('❌ This reseller account no longer exists!', 'var(--danger-red)');
-      logout();
-      return;
-    }
-    const isObj = typeof data === 'object';
-    const bal = isObj ? toNum(data.balance) : toNum(data);
-    $('resellerDisplayBalance').textContent = bal.toFixed(2);
-
-    const myKeys = (isObj && data.my_keys && typeof data.my_keys === 'object') ? data.my_keys : {};
-    const names = Object.keys(myKeys);
-    $('resellerKeysCountBadge').textContent = names.length;
-
-    const box = $('resellerKeysList');
-    if (!names.length) {
-      box.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:0.8rem;">No keys created yet</div>';
-      return;
-    }
-    let html = '';
-    names.forEach((k, i) => {
-      const info = (myKeys[k] && typeof myKeys[k] === 'object') ? myKeys[k] : {};
-      const durationText = info.durationText || 'Custom';
-      const devices = info.devicesAllowed || '1';
-      html += '<div style="background:rgba(10,13,20,0.9); border:1px solid rgba(229,9,20,0.25); padding:12px; border-radius:12px; display:flex; justify-content:space-between; align-items:center; gap:8px;">' +
-        '<div style="min-width:0;">' +
-        '<div class="code-text" style="color:var(--accent-glow);"><span style="color:var(--text-muted); font-size:0.75rem;">#' + (i + 1) + '</span> ' + escHtml(k) + '</div>' +
-        '<div style="font-size:0.7rem; color:var(--text-muted);">' + escHtml(durationText) + ' | 📱 devices: ' + escHtml(devices) + ' <span style="color:var(--success-green); margin-left:6px; font-weight:700;">[READY]</span></div>' +
-        '</div>' +
-        '<div style="display:flex; gap:6px; align-items:center;">' +
-        '<button class="btn-share-vibrant" data-act="share" data-k="' + escHtml(k) + '" data-d="' + escHtml(durationText) + '" data-v="' + escHtml(devices) + '">📲 SHARE</button>' +
-        '<button class="btn-trash" data-act="delkey" data-k="' + escHtml(k) + '">🗑</button>' +
-        '</div></div>';
-    });
-    box.innerHTML = html;
-  } catch (e) {
-    showMsg('❌ Error loading data', 'var(--danger-red)');
-  }
-}
-
-function fallbackCopy(text) {
-  const ta = document.createElement('textarea');
-  ta.value = text;
-  ta.style.position = 'fixed';
-  ta.style.opacity = '0';
-  document.body.appendChild(ta);
-  ta.select();
-  let ok = false;
-  try { ok = document.execCommand('copy'); } catch (e) {}
-  document.body.removeChild(ta);
-  return ok;
-}
-
-function copyText(text, okMsg) {
-  const done = () => showMsg(okMsg || '✅ Copied!', 'var(--success-green)');
-  const fail = () => showMsg('❌ Copy failed!', 'var(--danger-red)');
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(done).catch(() => { fallbackCopy(text) ? done() : fail(); });
-  } else {
-    fallbackCopy(text) ? done() : fail();
-  }
-}
-
-function copyFullClientText(key, duration, devices) {
-  const fullText = '🔥 HAX_NON_ROOT CLIENT 🔥\n\n🔑 Key: ' + key + '\n⏱ Duration: ' + duration + '\n📱 Allowed Devices: ' + (devices || '1') + '\n🌐 App Link: ' + APP_LINK + '\n\nEnjoy your access!';
-  copyText(fullText, '✅ Shared Text Copied!');
-}
-
-async function deleteResellerKey(keyName) {
-  if (!activeReseller) return;
-  if (!confirm('هل أنت متأكد من حذف المفتاح: ' + keyName + '؟')) return;
-  showMsg('⏳ جاري الحذف...', 'var(--accent-glow)');
-  try {
-    await fb('DELETE', 'keys/' + keyName);
-    await fb('DELETE', 'resellers/' + activeReseller + '/my_keys/' + keyName);
-    showMsg('✅ تم حذف المفتاح بنجاح!', 'var(--success-green)');
-    loadResellerPanelData();
-  } catch (e) {
-    showMsg('❌ حدث خطأ أثناء الحذف', 'var(--danger-red)');
-  }
-}
-
-async function deleteAllResellerKeys() {
-  if (!activeReseller) return;
-  if (!confirm('⚠️ هل أنت متأكد من حذف جميع المفاتيح الخاصة بك؟')) return;
-  showMsg('⏳ جاري حذف كافة المفاتيح الخاصة بك...', 'var(--accent-glow)');
-  try {
-    const myKeys = await fb('GET', 'resellers/' + activeReseller + '/my_keys', undefined, 'shallow=true');
-    if (myKeys && typeof myKeys === 'object') {
-      const patch = {};
-      Object.keys(myKeys).forEach((k) => { patch[k] = null; });
-      await fb('PATCH', 'keys', patch);
-      await fb('DELETE', 'resellers/' + activeReseller + '/my_keys');
-    }
-    showMsg('✅ تم حذف جميع المفاتيح الخاصة بك بنجاح!', 'var(--success-green)');
-    $('newKeysResultBox').classList.add('hidden');
-    loadResellerPanelData();
-  } catch (e) {
-    showMsg('❌ حدث خطأ أثناء الحذف الكلي', 'var(--danger-red)');
-  }
-}
-
-/* ---------- Generate keys (via Worker only) ---------- */
-function extractKeys(d) {
-  let list = [];
-  if (Array.isArray(d)) list = d;
-  else if (d && typeof d === 'object') {
-    const src = d.keys || d.generatedKeys || d.data || d.result;
-    if (Array.isArray(src)) list = src;
-    else if (src && typeof src === 'object') list = Object.keys(src);
-    else if (typeof d.key === 'string') list = [d.key];
-  }
-  return list
-    .map((x) => (typeof x === 'string' ? x : (x && (x.key || x.id || x.code))))
-    .filter(Boolean);
-}
-
-async function generateKeys() {
-  if (genBusy || !activeReseller) return;
-
-  const sel = $('keyDurationSelect');
-  const durationMs = Number(sel.value);
-  const durationText = sel.options[sel.selectedIndex].text.split(' - ')[0];
-  const devicesAllowed = Number($('keyMaxDevicesSelect').value);
-  const qty = parseInt($('keyQuantityInput').value, 10);
-
-  if (isNaN(qty) || qty < 1 || qty > 10) {
-    showMsg('⚠ Quantity must be between 1 and 10!', 'var(--danger-red)');
-    return;
-  }
-
-  genBusy = true;
-  const btn = $('generateBtn');
-  btn.disabled = true;
-  showMsg('⏳ Generating keys...', 'var(--accent-glow)');
-
-  try {
-    const adminToken = await getAuthToken();
-
-    const price = await fb('GET', 'settings/price');
-    if (price !== null && !isNaN(price)) {
-      const bal = toNum(await fb('GET', 'resellers/' + activeReseller + '/balance'));
-      if (bal < parseFloat(price) * qty) {
-        showMsg('❌ Insufficient balance!', 'var(--danger-red)');
-        return;
-      }
-    }
-
-    const res = await fetch(WORKER_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        resellerCode: activeReseller,
-        durationMs: durationMs,
-        durationText: durationText,
-        devicesAllowed: devicesAllowed,
-        qty: qty,
-        adminToken: adminToken
-      })
-    });
-
-    let data = null;
-    try { data = await res.json(); } catch (e) {}
-
-    if (!res.ok) {
-      const reason = data && (data.error || data.message);
-      throw new Error(reason ? String(reason) : 'Server error ' + res.status);
-    }
-
-    const keys = extractKeys(data);
-    if (!keys.length) {
-      showMsg('⚠ The server returned no keys!', 'var(--danger-red)');
-      loadResellerPanelData();
-      return;
-    }
-
-    $('newKeysCountNum').textContent = keys.length;
-    let html = '';
-    keys.forEach((k, index) => {
-      html += '<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; background:rgba(3,4,7,0.9); padding:10px 14px; border-radius:10px; border:1px solid rgba(0,230,118,0.3);">' +
-        '<div style="min-width:0;"><span style="font-size:0.75rem; color:var(--text-muted);">#' + (index + 1) + '</span> <span class="code-text" style="color:var(--success-green);">' + escHtml(k) + '</span></div>' +
-        '<button class="btn-share-vibrant" data-act="share" data-k="' + escHtml(k) + '" data-d="' + escHtml(durationText) + '" data-v="' + escHtml(devicesAllowed) + '">📲 SHARE</button>' +
-        '</div>';
-    });
-    $('newKeysListContent').innerHTML = html;
-    $('newKeysResultBox').classList.remove('hidden');
-
-    showMsg('✅ Keys generated successfully!', 'var(--success-green)');
-    loadResellerPanelData();
-  } catch (e) {
-    showMsg('❌ ' + (e && e.message ? e.message : 'Error generating keys!'), 'var(--danger-red)');
-  } finally {
-    genBusy = false;
-    btn.disabled = false;
-  }
-}
-
-/* ---------- Admin ---------- */
-async function loadAdminDashboard() {
-  try {
-    const priceData = await fb('GET', 'settings/price');
-    const currentPrice = (priceData !== null && !isNaN(priceData)) ? parseFloat(priceData) : 1.00;
-    $('statPrice').textContent = currentPrice.toFixed(2);
-    $('currentPriceDisplay').textContent = currentPrice.toFixed(2);
-    $('basePriceInput').value = currentPrice.toFixed(2);
-
-    const keysData = await fb('GET', 'keys', undefined, 'shallow=true');
-    $('statKeys').textContent = (keysData && typeof keysData === 'object') ? Object.keys(keysData).length : 0;
-
-    const resesData = await fb('GET', 'resellers');
-    const tbody = $('adminResellersTableBody');
-    const chargeSelect = $('chargeSelectReseller');
-    tbody.innerHTML = '';
-    chargeSelect.innerHTML = '';
-    const ph = document.createElement('option');
-    ph.value = '';
-    ph.textContent = 'Select Reseller';
-    chargeSelect.appendChild(ph);
-
-    let totalResellers = 0;
-    let totalBalance = 0;
-    let rows = '';
-
-    if (resesData && typeof resesData === 'object') {
-      Object.keys(resesData).forEach((code) => {
-        const obj = resesData[code];
-        let bal = 0;
-        let keysCount = 0;
-        if (obj && typeof obj === 'object') {
-          bal = toNum(obj.balance);
-          keysCount = (obj.my_keys && typeof obj.my_keys === 'object') ? Object.keys(obj.my_keys).length : 0;
-        } else {
-          bal = toNum(obj);
-        }
-        totalBalance += bal;
-        totalResellers++;
-
-        const opt = document.createElement('option');
-        opt.value = code;
-        opt.textContent = code + ' (Bal: ' + bal.toFixed(2) + ')';
-        chargeSelect.appendChild(opt);
-
-        rows += '<tr><td><input type="checkbox" class="reseller-cb" value="' + escHtml(code) + '"></td>' +
-          '<td class="code-text">' + escHtml(code) + '</td>' +
-          '<td class="val-green">' + bal.toFixed(2) + '</td>' +
-          '<td class="val-num" style="color:#fff;">' + keysCount + '</td>' +
-          '<td style="text-align:center"><button class="btn-trash" data-act="delres" data-c="' + escHtml(code) + '">🗑</button></td></tr>';
-      });
-    }
-    tbody.innerHTML = rows;
-    $('selectAllCb').checked = false;
-
-    $('statResellers').textContent = totalResellers;
-    $('totalResellersCount').textContent = totalResellers + ' TOTAL';
-    $('statBalance').textContent = totalBalance.toFixed(2);
-  } catch (e) {
-    showMsg('❌ Error loading dashboard', 'var(--danger-red)');
-  }
-}
-
-async function updateBasePrice() {
-  if (priceBusy) return;
-  const p = parseFloat($('basePriceInput').value);
-  if (isNaN(p) || p < 0) { showMsg('⚠ Enter a valid price!', 'var(--danger-red)'); return; }
-  const adminPass = prompt("أدخل كلمة مرور الأدمن لتأكيد تغيير السعر:");
-  if (!adminPass) { showMsg('⚠ Password required!', 'var(--danger-red)'); return; }
-  priceBusy = true;
-  const btn = $('updatePriceBtn');
-  btn.disabled = true;
-  showMsg('⏳ Updating price...', 'var(--accent-glow)');
-  try {
-    const adminToken = await getAuthToken();
-    const res = await fetch(UPDATE_PRICE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ price: p, adminToken: adminToken, adminPass: adminPass })
-    });
-    let data = null;
-    try { data = await res.json(); } catch (e) {}
-    if (!res.ok) {
-      const reason = data && (data.error || data.message);
-      throw new Error(reason ? String(reason) : 'Server error ' + res.status);
-    }
-    showMsg('✅ Price updated successfully!', 'var(--success-green)');
-    loadAdminDashboard();
-  } catch (e) {
-    showMsg('❌ ' + (e && e.message ? e.message : 'Error updating price'), 'var(--danger-red)');
-  } finally {
-    priceBusy = false;
-    btn.disabled = false;
-  }
-}
-
-async function addNewReseller() {
-  const rawCode = $('addResellerCode').value;
-  const code = normalizeCode(rawCode);
-  const bal = parseFloat($('addResellerBal').value);
-
-  if (!code) { showMsg('⚠ Enter a valid reseller code!', 'var(--danger-red)'); return; }
-  if (isNaN(bal) || bal < 0) { showMsg('⚠ Enter a valid balance!', 'var(--danger-red)'); return; }
-
-  try {
-    const existing = await fb('GET', 'resellers/' + code);
-    if (existing !== null) { showMsg('⚠ This reseller already exists!', 'var(--danger-red)'); return; }
-    await fb('PUT', 'resellers/' + code, { name: rawCode.trim(), balance: bal, createdAt: Date.now() });
-    showMsg('✅ Reseller ' + code + ' added successfully!', 'var(--success-green)');
-    $('addResellerCode').value = '';
-    $('addResellerBal').value = '10';
-    loadAdminDashboard();
-  } catch (e) {
-    showMsg('❌ Permission denied or error adding reseller', 'var(--danger-red)');
-  }
-}
-
-async function chargeResellerBalance(action) {
-  const code = $('chargeSelectReseller').value;
-  const amt = parseFloat($('chargeAmount').value);
-  if (!code || isNaN(amt) || amt <= 0) { showMsg('⚠ Select reseller & amount!', 'var(--danger-red)'); return; }
-
-  try {
-    const obj = await fb('GET', 'resellers/' + code);
-    if (obj === null) { showMsg('❌ Reseller not found!', 'var(--danger-red)'); return; }
-    const currentBal = (typeof obj === 'object') ? toNum(obj.balance) : toNum(obj);
-    const newBal = action === 'add' ? currentBal + amt : currentBal - amt;
-    if (newBal < 0) { showMsg('❌ Balance is not enough to deduct!', 'var(--danger-red)'); return; }
-
-    if (typeof obj === 'object') {
-      await fb('PUT', 'resellers/' + code + '/balance', newBal);
-    } else {
-      await fb('PUT', 'resellers/' + code, { balance: newBal });
-    }
-    $('chargeAmount').value = '';
-    showMsg('⚡ Success! New Balance: ' + newBal.toFixed(2), 'var(--success-green)');
-    loadAdminDashboard();
-  } catch (e) {
-    showMsg('❌ Error charging balance', 'var(--danger-red)');
-  }
-}
-
-function toggleSelectAll(master) {
-  document.querySelectorAll('.reseller-cb').forEach((cb) => { cb.checked = master.checked; });
-}
-
-async function deleteSelectedResellers() {
-  const selected = Array.from(document.querySelectorAll('.reseller-cb:checked')).map((cb) => cb.value);
-  if (!selected.length) { showMsg('⚠ No resellers selected!', 'var(--danger-red)'); return; }
-  if (!confirm('Delete ' + selected.length + ' resellers?')) return;
-  try {
-    const patch = {};
-    selected.forEach((c) => { patch[c] = null; });
-    await fb('PATCH', 'resellers', patch);
-    showMsg('🗑 Deleted successfully!', 'var(--success-green)');
-    loadAdminDashboard();
-  } catch (e) {
-    showMsg('❌ Error deleting resellers', 'var(--danger-red)');
-  }
-}
-
-async function deleteReseller(code) {
-  if (!confirm('Delete ' + code + '?')) return;
-  try {
-    await fb('DELETE', 'resellers/' + code);
-    showMsg('🗑 Deleted successfully!', 'var(--success-green)');
-    loadAdminDashboard();
-  } catch (e) {
-    showMsg('❌ Error deleting reseller', 'var(--danger-red)');
-  }
-}
-
-async function deleteAllSystemKeys() {
-  if (!confirm('⚠️ تحذير أدمن: هل أنت متأكد من حذف جميع المفاتيح في كامل الموقع والنظام لجميع الموزعين؟')) return;
-  showMsg('⏳ جاري مسح كافة المفاتيح من النظام...', 'var(--accent-glow)');
-  try {
-    await fb('DELETE', 'keys');
-    const list = await fb('GET', 'resellers', undefined, 'shallow=true');
-    if (list && typeof list === 'object') {
-      for (const code of Object.keys(list)) {
-        await fb('DELETE', 'resellers/' + code + '/my_keys');
-      }
-    }
-    showMsg('⚡ تم حذف جميع المفاتيح من الموقع بنجاح!', 'var(--success-green)');
-    loadAdminDashboard();
-  } catch (e) {
-    showMsg('❌ حدث خطأ أثناء مسح المفاتيح', 'var(--danger-red)');
-  }
-}
-
-/* ---------- Events ---------- */
-document.addEventListener('click', (e) => {
-  const el = e.target.closest('[data-act]');
-  if (!el) return;
-  const act = el.getAttribute('data-act');
-  if (act === 'share') copyFullClientText(el.getAttribute('data-k'), el.getAttribute('data-d'), el.getAttribute('data-v'));
-  else if (act === 'delkey') deleteResellerKey(el.getAttribute('data-k'));
-  else if (act === 'delres') deleteReseller(el.getAttribute('data-c'));
-});
-
-$('resellerInputCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') loginAsReseller(); });
-$('adminInputPass').addEventListener('keydown', (e) => { if (e.key === 'Enter') loginAsAdmin(); });
-</script>
-
+  <script src="config.js" defer></script>
+  <script src="app.js" defer></script>
 </body>
   </html>
