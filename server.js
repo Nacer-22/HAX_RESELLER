@@ -263,7 +263,7 @@ app.get("/api/admin/resellers", requireAuth("admin"), async (_req, res) => {
 });
 
 app.post("/api/admin/resellers", requireAuth("admin"), async (req, res) => {
-  const label = cleanLabel(req.body?.label);
+  const label = cleanLabel(req.body?.label || req.body?.code);
   const balance = Number(req.body?.balance ?? 0);
   if (!label) return res.status(400).json({ error: "أدخل اسم الموزع." });
   if (!Number.isFinite(balance) || balance < 0 || balance > 1000000) return res.status(400).json({ error: "قيمة الرصيد غير صالحة." });
