@@ -454,6 +454,22 @@ HAX_NON_ROOT
 </div>
 <div id="newKeysListContent" style="display:flex; flex-direction:column; gap:8px;"></div>
 </div>
+<div id="shareKeyModal" class="hidden" style="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div style="width:100%;max-width:360px;background:#0A0D14;border:1px solid #e50914;border-radius:18px;padding:20px;box-shadow:0 0 24px rgba(229,9,20,.35);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <strong style="color:#fff;font-size:1rem;">مشاركة الكود مع العميل</strong>
+      <button type="button" data-act="close-share" aria-label="إغلاق" style="background:transparent;border:0;color:#fff;font-size:1.5rem;cursor:pointer;">×</button>
+    </div>
+    <p style="color:#9aa5b1;font-size:.8rem;margin-bottom:14px;">اختر التطبيق الذي تريد إرسال الكود من خلاله</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <button type="button" data-act="shareplatform" data-platform="telegram" style="padding:13px;border-radius:12px;border:1px solid #229ED9;background:rgba(34,158,217,.12);color:#fff;font-weight:800;">✈️ Telegram</button>
+      <button type="button" data-act="shareplatform" data-platform="whatsapp" style="padding:13px;border-radius:12px;border:1px solid #25D366;background:rgba(37,211,102,.12);color:#fff;font-weight:800;">🟢 WhatsApp</button>
+      <button type="button" data-act="shareplatform" data-platform="instagram" style="padding:13px;border-radius:12px;border:1px solid #E1306C;background:rgba(225,48,108,.12);color:#fff;font-weight:800;">📸 Instagram</button>
+      <button type="button" data-act="shareplatform" data-platform="tiktok" style="padding:13px;border-radius:12px;border:1px solid #25F4EE;background:rgba(37,244,238,.10);color:#fff;font-weight:800;">♪ TikTok</button>
+    </div>
+    <p style="color:#78909C;font-size:.72rem;margin-top:14px;text-align:center;">في Instagram وTikTok سيتم نسخ الكود أولاً؛ الصقه داخل المحادثة.</p>
+  </div>
+</div>
 
 <div class="accordion-item">
 <div class="accordion-header active" data-ui-click="toggleAccordion">
