@@ -139,9 +139,9 @@ function mutateStore(operation) {
 const sha256 = value => crypto.createHash("sha256").update(String(value)).digest("hex");
 const newId = () => crypto.randomUUID();
 const newCode = prefix => prefix + "-" + crypto.randomBytes(9).toString("hex").toUpperCase();
-const newLicenseCode = () => `Nacer-${crypto.randomBytes(2).toString("hex").toUpperCase()}_${crypto.randomBytes(2).toString("hex").toUpperCase()}-${crypto.randomBytes(2).toString("hex").toUpperCase()}`;
+const newLicenseCode = () => { const raw = crypto.randomBytes(12).toString("hex").toUpperCase(); return `Nacer-${raw.slice(0, 8)}_${raw.slice(8, 16)}-${raw.slice(16, 24)}`; };
 const normalizeLicenseCode = value => String(value || "").normalize("NFKC").replace(/[\u200B-\u200D\uFEFF]/g, "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
-const isSupportedLicenseCode = value => /^NACER[A-F0-9]{12}$/.test(value) || /^HAXK[A-F0-9]{18}$/.test(value);
+const isSupportedLicenseCode = value => /^NACER(?:[A-F0-9]{12}|[A-F0-9]{24})$/.test(value) || /^HAXK[A-F0-9]{18}$/.test(value);
 const cleanLabel = value => String(value || "").trim().replace(/[<>]/g, "").slice(0, 60);
 
 function issueToken(subject, role, sessionVersion = 0) {
