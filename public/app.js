@@ -1,624 +1,241 @@
 (() => {
   "use strict";
   const $ = id => document.getElementById(id);
-  const cfg = window.HAX_SITE_CONFIG || {};
-  const apiBase = String(cfg.API_BASE_URL || "").replace(/\/+$/, "");
-  let token = "";
-  let activeResellerCode = "";
-  let messageTimer = null;
-  let busy = false;
-  let currentResellers = [];
-  let adminCreatedCodes = [];
-  let clientKey = "";
-  let clientExpiryTime = 0;
-  let clientCreatedTime = 0;
-  let clientDeviceLimit = 1;
-  let clientKeyVisible = false;
-  let clientTimerInterval = null;
-  const HAPP_SUBSCRIPTION_URL = 'happ://crypt5/fzvd4YgqdTHtPvjHwhZcw54y24f7Dk0goBe2Fa1lwDobLeD1wJ/QO6q6l24H6Re0xAiw9PskIQB2kP+rco9tRM+3dKIoFMLXly9M+D4ldIR6piO1jP7rKBCMbFuluqrSjPTdvZ2GCrgAw2OdN9Z3smxJidBwT/Pp5nygdjj4WjatLy07EI3tGhREKTcj1lohQIQ4V8w/OxgmvwGOWRHsEYL2m2PjGST1R3JY/aHOV5x6R4X5OUqBwJMzCt9str+x4gOEen5haEsE33G4fLDuFio0JJrTwH5+J57flABwGFeJ6xUeHvMj3trh12dB6jUOikacLaWDr1K/iiFBmQ/49+Z7erc2SrSba4m7OLM+JytVfUKOcoLliCftLpHJrq3MqsOPstNkTvOx0uQZSTJ7mlsI38vWVjl/eSznEASBgSz8yViHbJuMJdocMub07L3xHO8aWMbln9vVzUlDyD2KaeD9qIQfbVXusHpuitOMCHwuGxWARZcRPA7MzW8D/BZMq4X1FqKBaJYzHBEYbzqGaT4J1fEZ3clHpeOgcdEB8z4fQ/IbdLlTpZFO2l+ueHhPzLRVpINU9aRXCDz3VFFAnJO8PZ5CFpT1N+ixLmQb2fEhyVexHC6MOnF8nRQ630G7z5ierJOGT6MlSVmdKh504SbEPIHCimLjDq6zWFD8WqmbIjEdl5kra6NnqjllRCOpZ9gLA5EHp3ItLgeYLheipP697OxUq/wLnZqrTEtOLrbjH7+aDudlSJrvNlWau7Ar2HWst3QvwP4o2hUVtQSal8jSc7cDJr53xBdEh3Ftba0/NNB4wCh1aP2hTvXeK/wkfgWbzhJwmkeu0rjGcXVUJBqH7lFuHd79qrXyLA2YPyrewPrqC1qbtG1ivYGcD1SQrG/hX+f6ZzI3oG5r7o96dM7Y5GDfdBlfV8oSrrAkz1VQsiqviGG19jWmfoE=ff';
+  const apiBase = String((window.HAX_SITE_CONFIG || {}).API_BASE_URL || "").replace(/\/+$/, "");
+  const HAPP = "happ://crypt5/fzvd4YgqdTHtPvjHwhZcw54y24f7Dk0goBe2Fa1lwDobLeD1wJ/QO6q6l24H6Re0xAiw9PskIQB2kP+rco9tRM+3dKIoFMLXly9M+D4ldIR6piO1jP7rKBCMbFuluqrSjPTdvZ2GCrgAw2Od9N3Z3smxJidBwT/Pp5nygdjj4WjatLy07EI3tGhREKTcj1lohQIQ4V8w/OxgmvwGOWRHsEYL2m2PjGST1R3JY/aHOV5x6R4X5OUqBwJMzCt9str+x4gOEen5haEsE33G4fLDuFio0JJrTwH5+J57flABwGFeJ6xUeHvMj3trh12dB6jUOikacLaWDr1K/iiFBmQ/49+Z7erc2SrSba4m7OLM+JytVfUKOcoLliCftLpHJrq3MqsOPstNkTvOx0uQZSTJ7mlsI38vWVjl/eSznEASBgSz8yViHbJuMJdocMub07L3xHO8aWMbln9vVzUlDyD2KaeD9qIQfbVXusHpuitOMCHwuGxWARZcRPA7MzW8D/BZMq4X1FqKBaJYzHBEYbzqGaT4J1fEZ3clHpeOgcdEB8z4fQ/IbdLlTpZFO2l+ueHhPzLRVpINU9aRXCDz3VFFAnJO8PZ5CFpT1N+ixLmQb2fEhyVexHC6MOnF8nRQ630G7z5ierJOGT6MlSVmdKh504SbEPIHCimLjDq6zWFD8WqmbIjEdl5kra6NnqjllRCOpZ9gLA5EHp3ItLgeYLheipP697OxUq/wLnZqrTEtOLrbjH7+aDudlSJrvNlWau7Ar2HWst3QvwP4o2hUVtQSal8jSc7cDJr53xBdEh3Ftba0/NNB4wCh1aP2hTvXeK/wkfgWbzhJwmkeu0rjGcXVUJBqH7lFuHd79qrXyLA2YPyrewPrqC1qbtG1ivYGcD1SQrG/hX+f6ZzI3oG5r7o96dM7Y5GDfdBlfV8oSrrAkz1VQsiqviGG19jWmfoE=ff";
+  let token = "", resellerCode = "", busy = false, priceBusy = false, timer = 0;
+  let resellers = [];
 
-  async function api(path, options = {}) {
-    if (!apiBase && location.hostname.endsWith("github.io")) {
-      throw new Error("واجهة الموقع جاهزة، لكن خادم HAX_RESELLER لم يُربط بعد. اضبط API_BASE_URL في assets/config.js.");
-    }
+  async function api(path, options) {
+    options = options || {};
     const headers = new Headers(options.headers || {});
     if (options.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
     if (token) headers.set("Authorization", "Bearer " + token);
-    const response = await fetch(apiBase + path, { ...options, headers });
+    const response = await fetch(apiBase + path, Object.assign({}, options, { headers }));
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "Request failed (" + response.status + ")");
     return data;
   }
-
-  function escapeHtml(value) {
-    return String(value ?? "").replace(/[&<>"']/g, ch => ({
-      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  function safe(value) {
+    return String(value == null ? "" : value).replace(/[&<>"']/g, ch => ({
+      "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
     }[ch]));
   }
-
-  function showMsg(message, color) {
-    const element = $("msg");
-    if (!element) return;
-    element.style.color = color || "var(--accent-glow)";
-    element.textContent = message;
-    clearTimeout(messageTimer);
-    messageTimer = setTimeout(() => { element.textContent = ""; }, 4500);
+  function msg(text, color) {
+    const el = $("msg");
+    el.textContent = text;
+    el.style.color = color || "var(--accent-glow)";
+    clearTimeout(timer);
+    timer = setTimeout(() => { el.textContent = ""; }, 5000);
   }
-
   function toggleAccordion(header) {
-    if (!header) return;
     header.classList.toggle("active");
-    const content = header.nextElementSibling;
-    if (content) content.classList.toggle("show");
+    if (header.nextElementSibling) header.nextElementSibling.classList.toggle("show");
   }
-
-  function showClientLogin() {
-    token = "";
-    $("clientPanel").classList.add("hidden");
-    $("adminPanel").classList.add("hidden");
-    $("resellerPanel").classList.add("hidden");
-    $("adminLoginView").classList.add("hidden");
-    $("resellerLoginView").classList.add("hidden");
-    $("clientLoginView").classList.remove("hidden");
-  }
-
   function showAdminLogin() {
-    $("clientLoginView").classList.add("hidden");
-    $("clientPanel").classList.add("hidden");
     $("resellerLoginView").classList.add("hidden");
-    $("resellerPanel").classList.add("hidden");
-    $("adminPanel").classList.add("hidden");
     $("adminLoginView").classList.remove("hidden");
   }
-
   function showResellerLogin() {
-    $("clientLoginView").classList.add("hidden");
-    $("clientPanel").classList.add("hidden");
     $("adminLoginView").classList.add("hidden");
-    $("adminPanel").classList.add("hidden");
-    $("resellerPanel").classList.add("hidden");
     $("resellerLoginView").classList.remove("hidden");
   }
-
-  function showClientPanel() {
-    $("clientLoginView").classList.add("hidden");
-    $("adminLoginView").classList.add("hidden");
-    $("resellerLoginView").classList.add("hidden");
-    $("adminPanel").classList.add("hidden");
-    $("resellerPanel").classList.add("hidden");
-    $("clientPanel").classList.remove("hidden");
-  }
-
-  function showAdminPanel() {
-    $("clientLoginView").classList.add("hidden");
-    $("clientPanel").classList.add("hidden");
-    $("resellerPanel").classList.add("hidden");
-    $("adminLoginView").classList.add("hidden");
-    $("resellerLoginView").classList.add("hidden");
-    $("adminPanel").classList.remove("hidden");
-  }
-
-  function showResellerPanel() {
-    $("clientLoginView").classList.add("hidden");
-    $("clientPanel").classList.add("hidden");
-    $("adminPanel").classList.add("hidden");
-    $("adminLoginView").classList.add("hidden");
-    $("resellerLoginView").classList.add("hidden");
-    $("resellerPanel").classList.remove("hidden");
-  }
-
-  function showClientMessage(message, color) {
-    const element = $("clientLoginMessage");
-    if (!element) return;
-    element.style.color = color || "var(--accent-glow)";
-    element.textContent = message;
-  }
-
-  function getClientDeviceId() {
-    let id = localStorage.getItem("hax_non_root_device_id");
-    if (!id) {
-      id = window.crypto && typeof window.crypto.randomUUID === "function"
-        ? window.crypto.randomUUID()
-        : "hax-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
-      localStorage.setItem("hax_non_root_device_id", id);
-    }
-    return id;
-  }
-
-  function formatClientDate(value) {
-    return value && Number.isFinite(Number(value)) ? new Date(Number(value)).toLocaleDateString("ar") : "—";
-  }
-
-  function startClientCountdown() {
-    if (clientTimerInterval) clearInterval(clientTimerInterval);
-    const update = () => {
-      const diff = clientExpiryTime - Date.now();
-      if (diff <= 0) {
-        $("clientTimer").textContent = "EXPIRED";
-        clearInterval(clientTimerInterval);
-        clientTimerInterval = null;
-        return;
-      }
-      const hours = Math.floor(diff / 3600000);
-      const minutes = Math.floor((diff % 3600000) / 60000);
-      const seconds = Math.floor((diff % 60000) / 1000);
-      $("clientTimer").innerHTML = String(hours).padStart(2,"0") + "<small>H</small> " +
-        String(minutes).padStart(2,"0") + "<small>M</small> " +
-        String(seconds).padStart(2,"0") + "<small>S</small>";
-    };
-    update();
-    clientTimerInterval = setInterval(update, 1000);
-  }
-
-  async function clientLogin() {
-    const key = String($("clientAccessKey").value || "").trim();
-    if (!key) return showClientMessage("أدخل مفتاح الدخول أولاً.", "var(--danger-red)");
-    const button = $("clientLoginButton");
-    button.disabled = true;
-    showClientMessage("⏳ جارٍ التحقق من المفتاح...");
-    try {
-      const checked = await api("/api/check", {
-        method: "POST", body: JSON.stringify({ code: key })
-      });
-      if (!checked.valid) {
-        const messages = {
-          invalid_format: "صيغة المفتاح غير صحيحة.",
-          code_not_found: "هذا المفتاح غير موجود.",
-          code_disabled: "تم إيقاف هذا المفتاح من الإدارة.",
-          code_expired: "انتهت صلاحية هذا المفتاح.",
-          too_many_requests: "محاولات كثيرة. حاول لاحقاً."
-        };
-        throw new Error(messages[checked.reason] || "تعذر التحقق من المفتاح.");
-      }
-      const verified = await api("/api/verify", {
-        method: "POST", body: JSON.stringify({ code: key, device_id: getClientDeviceId() })
-      });
-      if (!verified.valid) {
-        const messages = {
-          max_devices_reached: "وصل المفتاح إلى الحد الأقصى للأجهزة.",
-          code_disabled: "تم إيقاف هذا المفتاح.",
-          code_expired: "انتهت صلاحية هذا المفتاح.",
-          code_not_found: "هذا المفتاح غير موجود."
-        };
-        throw new Error(messages[verified.reason] || "لم يتم قبول هذا الجهاز.");
-      }
-      clientKey = checked.code || key;
-      clientExpiryTime = Date.parse(verified.expires_at || checked.expires_at);
-      clientCreatedTime = Date.parse(checked.created_at || Date.now());
-      clientDeviceLimit = Number(checked.max_devices || 1);
-      clientKeyVisible = false;
-      $("clientDisplayKey").textContent = "••••••••••••";
-      $("clientDeviceLimit").textContent = String(clientDeviceLimit);
-      $("clientCreatedAt").textContent = formatClientDate(clientCreatedTime);
-      $("clientExpiresAt").textContent = formatClientDate(clientExpiryTime);
-      showClientPanel();
-      startClientCountdown();
-      showClientMessage("");
-    } catch (error) {
-      showClientMessage("❌ " + error.message, "var(--danger-red)");
-    } finally {
-      button.disabled = false;
-    }
-  }
-
-  function toggleClientKeyVisibility() {
-    const input = $("clientAccessKey");
-    input.type = input.type === "password" ? "text" : "password";
-  }
-
-  async function pasteClientKey() {
-    try {
-      const value = await navigator.clipboard.readText();
-      if (value) {
-        $("clientAccessKey").value = value.trim();
-        showClientMessage("✔ تم لصق المفتاح.", "var(--success-green)");
-      }
-    } catch {
-      showClientMessage("اسمح للمتصفح بالوصول إلى الحافظة أو الصق المفتاح يدوياً.", "var(--danger-red)");
-    }
-  }
-
-  function toggleClientDisplayKey() {
-    clientKeyVisible = !clientKeyVisible;
-    $("clientDisplayKey").textContent = clientKeyVisible ? clientKey : "••••••••••••";
-  }
-
-  function copyClientKey() {
-    if (clientKey) copyText(clientKey);
-  }
-
-  function clientLogout() {
-    if (clientTimerInterval) clearInterval(clientTimerInterval);
-    clientTimerInterval = null;
-    clientKey = "";
-    clientExpiryTime = 0;
-    clientCreatedTime = 0;
-    $("clientAccessKey").value = "";
-    showClientLogin();
-  }
-
-  function launchHapp() {
-    if (!clientKey) return;
-    window.location.href = HAPP_SUBSCRIPTION_URL;
-  }
-
-  async function loginAsReseller() {
-    const code = String($("resellerInputCode").value || "").trim().toUpperCase();
-    if (!code) return showMsg("⚠ Enter your reseller code.", "var(--danger-red)");
-    showMsg("⏳ Checking reseller code...");
-    try {
-      const result = await api("/api/auth/reseller/login", {
-        method: "POST", body: JSON.stringify({ code })
-      });
-      token = result.token;
-      activeResellerCode = code;
-      showResellerPanel();
-      await loadResellerPanelData();
-      showMsg("✅ Welcome.", "var(--success-green)");
-    } catch (error) {
-      showMsg("❌ " + error.message, "var(--danger-red)");
-    }
-  }
-
-  async function loginAsAdmin() {
-    const username = String($("adminInputUser")?.value || "").trim();
-    const password = String($("adminInputPass").value || "");
-    if (!username || !password) return showMsg("⚠ Enter admin username and password.", "var(--danger-red)");
-    showMsg("⏳ Signing in...");
-    try {
-      const result = await api("/api/auth/admin/login", {
-        method: "POST", body: JSON.stringify({ username, password })
-      });
-      token = result.token;
-      showAdminPanel();
-      await loadAdminDashboard();
-      showMsg("✅ Admin access granted.", "var(--success-green)");
-    } catch (error) {
-      showMsg("❌ " + error.message, "var(--danger-red)");
-    }
-  }
-
   function logout() {
     token = "";
-    activeResellerCode = "";
+    resellerCode = "";
+    $("resellerPanel").classList.add("hidden");
+    $("adminPanel").classList.add("hidden");
+    $("adminLoginView").classList.add("hidden");
+    $("resellerLoginView").classList.remove("hidden");
     $("resellerInputCode").value = "";
-    $("adminInputUser").value = "";
     $("adminInputPass").value = "";
     $("newKeysResultBox").classList.add("hidden");
     $("newKeysListContent").innerHTML = "";
-    $("resellerPanel").classList.add("hidden");
-    $("adminPanel").classList.add("hidden");
-    $("adminLoginView").classList.add("hidden");
-    $("resellerLoginView").classList.add("hidden");
-    showClientLogin();
-    showMsg("تم تسجيل الخروج.");
+    msg("تم تسجيل الخروج.");
   }
-
+  async function loginAsReseller() {
+    const code = $("resellerInputCode").value.trim().toUpperCase();
+    if (!code) return msg("أدخل رمز الموزع.", "var(--danger-red)");
+    msg("جارٍ التحقق...");
+    try {
+      const data = await api("/api/auth/reseller/login", { method:"POST", body:JSON.stringify({code}) });
+      token = data.token;
+      resellerCode = code;
+      $("resellerLoginView").classList.add("hidden");
+      $("adminLoginView").classList.add("hidden");
+      $("adminPanel").classList.add("hidden");
+      $("resellerPanel").classList.remove("hidden");
+      await loadResellerPanelData();
+      msg("تم تسجيل الدخول بنجاح.", "var(--success-green)");
+    } catch (e) { msg("خطأ: " + e.message, "var(--danger-red)"); }
+  }
+  async function loginAsAdmin() {
+    const password = $("adminInputPass").value;
+    if (!password) return msg("أدخل كلمة المرور.", "var(--danger-red)");
+    msg("جارٍ تسجيل الدخول...");
+    try {
+      const data = await api("/api/auth/admin/login", { method:"POST", body:JSON.stringify({password}) });
+      token = data.token;
+      $("adminLoginView").classList.add("hidden");
+      $("resellerLoginView").classList.add("hidden");
+      $("resellerPanel").classList.add("hidden");
+      $("adminPanel").classList.remove("hidden");
+      await loadAdminDashboard();
+      msg("تم تسجيل دخول الإدارة.", "var(--success-green)");
+    } catch (e) { msg("خطأ: " + e.message, "var(--danger-red)"); }
+  }
   async function loadResellerPanelData() {
-    const values = await Promise.all([
-      api("/api/reseller/me"), api("/api/reseller/keys")
-    ]);
-    const me = values[0];
-    const keys = values[1].keys || [];
-    $("resellerDisplayCode").textContent = activeResellerCode || me.displayCode;
-    $("resellerDisplayBalance").textContent = Number(me.balance).toFixed(2);
+    const pair = await Promise.all([api("/api/reseller/me"), api("/api/reseller/keys")]);
+    $("resellerDisplayCode").textContent = resellerCode || pair[0].displayCode || "";
+    $("resellerDisplayBalance").textContent = Number(pair[0].balance || 0).toFixed(2);
+    const keys = Array.isArray(pair[1].keys) ? pair[1].keys : [];
     $("resellerKeysCountBadge").textContent = keys.length;
-    const box = $("resellerKeysList");
-    if (!keys.length) {
-      box.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:.8rem;">No keys created yet</div>';
-      return;
-    }
-    box.innerHTML = keys.map((key, index) =>
-      '<div style="background:rgba(10,13,20,.9);border:1px solid var(--card-border);padding:12px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
-        '<div style="min-width:0;"><div class="code-text" style="color:var(--accent-glow);"><span style="color:var(--text-muted);font-size:.75rem;">#' + (index + 1) + '</span> ' + escapeHtml(key.code) + '</div>' +
-        '<div style="font-size:.7rem;color:var(--text-muted);">' + escapeHtml(key.durationLabel) + ' | 📱 Devices: ' + escapeHtml(key.devices) + ' <span style="color:' + (key.isActive === false || new Date(key.expiresAt).getTime() <= Date.now() ? 'var(--danger-red)' : 'var(--success-green)') + ';font-weight:700;">[' + (key.isActive === false ? 'STOPPED' : new Date(key.expiresAt).getTime() <= Date.now() ? 'EXPIRED' : 'ACTIVE') + ']</span></div></div>' +
-        '<div style="display:flex;gap:6px;align-items:center;"><button class="btn-share-vibrant" data-act="share" data-k="' + escapeHtml(key.code) + '" data-d="' + escapeHtml(key.durationLabel) + '" data-v="' + escapeHtml(key.devices) + '">📲 SHARE</button>' +
-        '<button class="btn-trash" data-act="delkey" data-id="' + escapeHtml(key.id) + '">🗑</button></div></div>'
-    ).join("");
+    $("resellerKeysList").innerHTML = keys.length ? keys.map((k, i) => {
+      const expired = !k.expiresAt || Date.parse(k.expiresAt) <= Date.now();
+      const active = k.isActive !== false && !expired;
+      const status = active ? "ACTIVE" : (k.isActive === false ? "STOPPED" : "EXPIRED");
+      return '<div style="background:rgba(10,13,20,.9);border:1px solid var(--card-border);padding:12px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
+       '<div style="min-width:0"><div class="code-text">#' + (i + 1) + ' ' + safe(k.code) + '</div><div style="font-size:.7rem;color:var(--text-muted)">' + safe(k.durationLabel) + ' | Devices: ' + safe(k.devices) + ' | ' + status + '</div></div>' +
+       '<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn-share-vibrant" data-act="share" data-k="' + safe(k.code) + '" data-d="' + safe(k.durationLabel) + '" data-v="' + safe(k.devices) + '">SHARE</button><button class="btn-trash" data-act="delkey" data-k="' + safe(k.id) + '">🗑</button></div></div>';
+    }).join("") : '<div style="text-align:center;color:var(--text-muted)">لا توجد مفاتيح بعد.</div>';
   }
-
   async function generateKeys() {
     if (busy) return;
     const durationMs = Number($("keyDurationSelect").value);
     const devices = Number($("keyMaxDevicesSelect").value);
     const quantity = Number.parseInt($("keyQuantityInput").value, 10);
-    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10) {
-      return showMsg("⚠ Quantity must be between 1 and 10.", "var(--danger-red)");
-    }
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10) return msg("الكمية من 1 إلى 10.", "var(--danger-red)");
     busy = true;
-    const button = $("generateBtn");
-    button.disabled = true;
-    showMsg("⏳ Generating keys...");
+    $("generateBtn").disabled = true;
+    msg("جارٍ إنشاء المفاتيح...");
     try {
-      const result = await api("/api/reseller/keys", {
-        method: "POST",
-        body: JSON.stringify({ durationMs, quantity, devices })
-      });
-      const keys = result.keys || [];
+      const data = await api("/api/reseller/keys", { method:"POST", body:JSON.stringify({durationMs, devices, quantity}) });
+      const keys = data.keys || [];
       $("newKeysCountNum").textContent = keys.length;
-      $("newKeysListContent").innerHTML = keys.map((key, index) =>
-        '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:rgba(3,4,7,.9);padding:10px 14px;border-radius:10px;border:1px solid rgba(0,230,118,.3);">' +
-          '<div style="min-width:0;"><span style="font-size:.75rem;color:var(--text-muted);">#' + (index + 1) + '</span> <span class="code-text" style="color:var(--success-green);">' + escapeHtml(key.code) + '</span></div>' +
-          '<button class="btn-share-vibrant" data-act="share" data-k="' + escapeHtml(key.code) + '" data-d="' + escapeHtml(key.durationLabel) + '" data-v="' + escapeHtml(key.devices) + '">📲 SHARE</button></div>'
+      $("newKeysListContent").innerHTML = keys.map((k, i) =>
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:rgba(3,4,7,.9);padding:10px 14px;border-radius:10px;border:1px solid rgba(0,230,118,.3)"><span class="code-text">' + (i + 1) + ". " + safe(k.code) + '</span><button class="btn-share-vibrant" data-act="share" data-k="' + safe(k.code) + '" data-d="' + safe(k.durationLabel) + '" data-v="' + safe(k.devices) + '">SHARE</button></div>'
       ).join("");
-      $("newKeysResultBox").classList.remove("hidden");
+      $("newKeysResultBox").classList.toggle("hidden", !keys.length);
       await loadResellerPanelData();
-      showMsg("✅ Keys generated successfully.", "var(--success-green)");
-    } catch (error) {
-      showMsg("❌ " + error.message, "var(--danger-red)");
-    } finally {
-      busy = false;
-      button.disabled = false;
-    }
+      msg("تم إنشاء " + keys.length + " مفتاح.", "var(--success-green)");
+    } catch (e) { msg("خطأ: " + e.message, "var(--danger-red)"); }
+    finally { busy = false; $("generateBtn").disabled = false; }
   }
-
   async function deleteResellerKey(id) {
-    if (!id || !confirm("Delete this key?")) return;
-    try {
-      await api("/api/reseller/keys/" + encodeURIComponent(id), { method: "DELETE" });
-      await loadResellerPanelData();
-      showMsg("✅ Key deleted.", "var(--success-green)");
-    } catch (error) { showMsg("❌ " + error.message, "var(--danger-red)"); }
+    if (!id || !confirm("حذف هذا المفتاح؟")) return;
+    try { await api("/api/reseller/keys/" + encodeURIComponent(id), {method:"DELETE"}); await loadResellerPanelData(); msg("تم حذف المفتاح.", "var(--success-green)"); }
+    catch (e) { msg("خطأ: " + e.message, "var(--danger-red)"); }
   }
-
   async function deleteAllResellerKeys() {
-    if (!confirm("Delete all your keys? This cannot be undone.")) return;
-    try {
-      const result = await api("/api/reseller/keys", { method: "DELETE" });
-      $("newKeysResultBox").classList.add("hidden");
-      await loadResellerPanelData();
-      showMsg("✅ Deleted " + result.deleted + " keys.", "var(--success-green)");
-    } catch (error) { showMsg("❌ " + error.message, "var(--danger-red)"); }
+    if (!confirm("حذف كل مفاتيحك؟")) return;
+    try { const x = await api("/api/reseller/keys", {method:"DELETE"}); $("newKeysResultBox").classList.add("hidden"); await loadResellerPanelData(); msg("تم حذف " + x.deleted + " مفتاح.", "var(--success-green)"); }
+    catch (e) { msg("خطأ: " + e.message, "var(--danger-red)"); }
   }
-
   async function loadAdminDashboard() {
-    const values = await Promise.all([
-      api("/api/admin/overview"), api("/api/admin/resellers"), api("/api/admin/keys")
-    ]);
-    const overview = values[0];
-    currentResellers = Array.isArray(values[1].resellers) ? values[1].resellers : [];
-    const allKeys = Array.isArray(values[2].keys) ? values[2].keys : [];
-    $("statResellers").textContent = overview.resellers;
-    $("statKeys").textContent = overview.keys;
-    $("statBalance").textContent = Number(overview.balance).toFixed(2);
-    $("statPrice").textContent = overview.activeKeys;
-    $("totalResellersCount").textContent = currentResellers.length + " TOTAL";
-    const tbody = $("adminResellersTableBody");
-    tbody.innerHTML = currentResellers.length ? currentResellers.map(item =>
-      '<tr><td><input type="checkbox" class="reseller-cb" value="' + escapeHtml(item.id) + '"></td>' +
-      '<td class="code-text">' + escapeHtml(item.label) + '<br><small>' + escapeHtml(item.displayCode) + '</small></td>' +
-      '<td class="val-green">' + Number(item.balance).toFixed(2) + '</td><td class="val-num">' + Number(item.keysCount || 0) + '</td>' +
-      '<td style="text-align:center"><button class="btn-trash" data-act="delres" data-id="' + escapeHtml(item.id) + '">🗑</button></td></tr>'
-    ).join("") : '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);">لا يوجد موزعون بعد.</td></tr>';
-    $("chargeSelectReseller").innerHTML = '<option value="">اختر الموزع</option>' + currentResellers.map(item =>
-      '<option value="' + escapeHtml(item.id) + '">' + escapeHtml(item.label) + ' · ' + Number(item.balance).toFixed(2) + '</option>'
+    const all = await Promise.all([api("/api/admin/overview"), api("/api/admin/resellers"), api("/api/admin/settings")]);
+    const overview = all[0], settings = all[2];
+    resellers = all[1].resellers || [];
+    $("statResellers").textContent = overview.resellers || 0;
+    $("statKeys").textContent = overview.keys || 0;
+    $("statBalance").textContent = Number(overview.balance || 0).toFixed(2);
+    $("statPrice").textContent = Number(settings.basePrice || 0).toFixed(2);
+    $("currentPriceDisplay").textContent = Number(settings.basePrice || 0).toFixed(2);
+    $("basePriceInput").value = Number(settings.basePrice || 0).toFixed(2);
+    $("totalResellersCount").textContent = resellers.length + " TOTAL";
+    $("adminResellersTableBody").innerHTML = resellers.length ? resellers.map((r, i) =>
+      '<tr><td><input type="checkbox" class="reseller-cb" value="' + safe(r.id) + '"></td><td class="code-text">' + safe(r.label) + '<br><small>' + safe(r.displayCode) + '</small></td><td class="val-green">' + Number(r.balance || 0).toFixed(2) + '</td><td class="val-num">' + Number(r.keysCount || 0) + '</td><td style="text-align:center"><button class="btn-trash" data-act="delres" data-c="' + safe(r.id) + '">🗑</button></td></tr>'
+    ).join("") : '<tr><td colspan="5" style="text-align:center;color:var(--text-muted)">لا يوجد موزعون.</td></tr>';
+    $("chargeSelectReseller").innerHTML = '<option value="">اختر الموزع</option>' + resellers.map(r =>
+      '<option value="' + safe(r.id) + '">' + safe(r.label) + ' · ' + Number(r.balance || 0).toFixed(2) + '</option>'
     ).join("");
     $("selectAllCb").checked = false;
-
-    const keysBody = $("adminKeysTableBody");
-    if (!keysBody) return;
-    keysBody.innerHTML = allKeys.length ? allKeys.map(key => {
-      const enabled = key.isActive !== false;
-      const expired = key.expired === true;
-      const status = !enabled ? "موقوف" : expired ? "منتهي" : "فعال";
-      const statusColor = !enabled || expired ? "var(--danger-red)" : "var(--success-green)";
-      const expiryValue = key.expiresAt && Number.isFinite(Date.parse(key.expiresAt))
-        ? (() => { const d = new Date(key.expiresAt); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); })() : "";
-      return '<tr>' +
-        '<td class="code-text">' + escapeHtml(key.code) + '</td>' +
-        '<td>' + escapeHtml(key.resellerLabel || "الإدارة") + '</td>' +
-        '<td><input type="datetime-local" data-expiry-for="' + escapeHtml(key.id) + '" value="' + escapeHtml(expiryValue) + '" style="max-width:190px;background:#030407;color:#fff;border:1px solid var(--card-border);padding:6px;border-radius:7px;"><button class="btn-trash" data-act="keyexpiry" data-id="' + escapeHtml(key.id) + '">حفظ</button></td>' +
-        '<td><select data-devices-for="' + escapeHtml(key.id) + '" style="max-width:72px;background:#030407;color:#fff;border:1px solid var(--card-border);padding:6px;border-radius:7px;">' +
-          [1,2,3,5].map(n => '<option value="' + n + '"' + (Number(key.devices || 1) === n ? " selected" : "") + '>' + n + '</option>').join("") +
-        '</select><button class="btn-trash" data-act="keydevices" data-id="' + escapeHtml(key.id) + '">حفظ</button></td>' +
-        '<td>' + Number(key.usedDevices || 0) + '</td>' +
-        '<td style="color:' + statusColor + ';font-weight:800;">' + status + '</td>' +
-        '<td style="white-space:nowrap;">' +
-          '<button class="btn-trash" data-act="keytoggle" data-id="' + escapeHtml(key.id) + '" data-active="' + (!enabled ? "true" : "false") + '">' + (enabled ? "إيقاف" : "تفعيل") + '</button> ' +
-          '<button class="btn-trash" data-act="keyreset" data-id="' + escapeHtml(key.id) + '" title="إعادة ضبط الأجهزة">↻</button> ' +
-          '<button class="btn-trash" data-act="keydelete" data-id="' + escapeHtml(key.id) + '" title="حذف المفتاح">🗑</button>' +
-        '</td></tr>';
-    }).join("") : '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);">لا توجد مفاتيح في النظام.</td></tr>';
   }
-
-  async function adminGenerateKeys() {
-    const durationMs = Number($("adminKeyDuration").value);
-    const devices = Number($("adminKeyDevices").value);
-    const quantity = Number.parseInt($("adminKeyQuantity").value, 10);
-    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 50) {
-      return showMsg("⚠ الكمية يجب أن تكون بين 1 و50.", "var(--danger-red)");
-    }
+  async function deleteAllSystemKeys() {
+    if (!confirm("حذف جميع مفاتيح النظام؟")) return;
+    try { const x = await api("/api/admin/keys", {method:"DELETE"}); await loadAdminDashboard(); msg("تم حذف " + x.deleted + " مفتاح.", "var(--success-green)"); }
+    catch (e) { msg("خطأ: " + e.message, "var(--danger-red)"); }
+  }
+  async function updateBasePrice() {
+    if (priceBusy) return;
+    const price = Number($("basePriceInput").value);
+    if (!Number.isFinite(price) || price < 0) return msg("أدخل سعراً صالحاً.", "var(--danger-red)");
+    priceBusy = true;
+    $("updatePriceBtn").disabled = true;
     try {
-      const result = await api("/api/admin/keys", {
-        method: "POST", body: JSON.stringify({ durationMs, devices, quantity })
-      });
-      adminCreatedCodes = (result.keys || []).map(key => key.code);
-      $("adminCreatedKeysList").innerHTML = adminCreatedCodes.map((code, index) =>
-        '<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;">' +
-        '<code style="color:#fff;direction:ltr;user-select:all;">' + escapeHtml(code) + '</code>' +
-        '<button class="btn-share-vibrant" data-act="copyone" data-code="' + escapeHtml(code) + '">نسخ</button></div>'
-      ).join("");
-      $("adminCreatedKeys").classList.remove("hidden");
-      await loadAdminDashboard();
-      showMsg("✅ تم إنشاء " + adminCreatedCodes.length + " مفتاح بنجاح.", "var(--success-green)");
-    } catch (error) {
-      showMsg("❌ " + error.message, "var(--danger-red)");
-    }
+      const data = await api("/api/admin/settings", {method:"PATCH", body:JSON.stringify({price})});
+      $("currentPriceDisplay").textContent = Number(data.basePrice).toFixed(2);
+      $("statPrice").textContent = Number(data.basePrice).toFixed(2);
+      msg("تم تحديث السعر.", "var(--success-green)");
+    } catch (e) { msg("خطأ: " + e.message, "var(--danger-red)"); }
+    finally { priceBusy = false; $("updatePriceBtn").disabled = false; }
   }
-
-  function copyAdminCreatedKeys() {
-    if (adminCreatedCodes.length) copyText(adminCreatedCodes.join("\n"));
-  }
-
-  async function toggleAdminKey(id, active) {
-    try {
-      await api("/api/admin/keys/" + encodeURIComponent(id), {
-        method: "PATCH", body: JSON.stringify({ isActive: active })
-      });
-      await loadAdminDashboard();
-      showMsg(active ? "✅ تم تفعيل المفتاح." : "تم إيقاف المفتاح.", active ? "var(--success-green)" : "var(--accent-glow)");
-    } catch (error) { showMsg("❌ " + error.message, "var(--danger-red)"); }
-  }
-
-  async function resetAdminKeyDevices(id) {
-    if (!confirm("إعادة ضبط الأجهزة المرتبطة بهذا المفتاح؟")) return;
-    try {
-      const result = await api("/api/admin/keys/" + encodeURIComponent(id) + "/reset", { method: "POST" });
-      await loadAdminDashboard();
-      showMsg("✅ تمت إعادة ضبط " + result.resetDevices + " جهاز.", "var(--success-green)");
-    } catch (error) { showMsg("❌ " + error.message, "var(--danger-red)"); }
-  }
-
-  async function saveAdminKeyExpiry(id) {
-    const input = document.querySelector('[data-expiry-for="' + id + '"]');
-    if (!input || !input.value) return showMsg("اختر تاريخ الانتهاء أولاً.", "var(--danger-red)");
-    try {
-      await api("/api/admin/keys/" + encodeURIComponent(id), {
-        method: "PATCH", body: JSON.stringify({ expiresAt: new Date(input.value).toISOString() })
-      });
-      await loadAdminDashboard();
-      showMsg("✅ تم تحديث تاريخ الانتهاء.", "var(--success-green)");
-    } catch (error) { showMsg("❌ " + error.message, "var(--danger-red)"); }
-  }
-
-  async function saveAdminKeyDevices(id) {
-    const input = document.querySelector('[data-devices-for="' + id + '"]');
-    if (!input) return;
-    try {
-      await api("/api/admin/keys/" + encodeURIComponent(id), {
-        method: "PATCH", body: JSON.stringify({ devices: Number(input.value) })
-      });
-      await loadAdminDashboard();
-      showMsg("✅ تم تحديث عدد الأجهزة.", "var(--success-green)");
-    } catch (error) { showMsg("❌ " + error.message, "var(--danger-red)"); }
-  }
-
-  async function deleteAdminKey(id) {
-    if (!confirm("حذف هذا المفتاح نهائياً؟")) return;
-    try {
-      await api("/api/admin/keys/" + encodeURIComponent(id), { method: "DELETE" });
-      await loadAdminDashboard();
-      showMsg("✅ تم حذف المفتاح.", "var(--success-green)");
-    } catch (error) { showMsg("❌ " + error.message, "var(--danger-red)"); }
-  }
-
   async function addNewReseller() {
-    const label = String($("addResellerName").value || "").trim();
+    const code = $("addResellerCode").value.trim().toUpperCase();
     const balance = Number($("addResellerBal").value);
-    if (!label) return showMsg("⚠ Enter a reseller name.", "var(--danger-red)");
-    if (!Number.isFinite(balance) || balance < 0) return showMsg("⚠ Enter a valid balance.", "var(--danger-red)");
+    if (!code) return msg("أدخل رمز الموزع.", "var(--danger-red)");
+    if (!Number.isFinite(balance) || balance < 0) return msg("الرصيد غير صالح.", "var(--danger-red)");
     try {
-      const result = await api("/api/admin/resellers", {
-        method: "POST", body: JSON.stringify({ label, balance })
-      });
-      showMsg("✅ Reseller created. One-time access code: " + result.accessCode, "var(--success-green)");
-      await copyText(result.accessCode);
-      $("addResellerName").value = "";
-      $("addResellerBal").value = "10";
+      const data = await api("/api/admin/resellers", {method:"POST", body:JSON.stringify({code, label:code, balance})});
       await loadAdminDashboard();
-    } catch (error) { showMsg("❌ " + error.message, "var(--danger-red)"); }
+      $("addResellerCode").value = "";
+      $("addResellerBal").value = "10";
+      await copyText(data.accessCode);
+      msg("تم إنشاء الموزع. رمز الدخول: " + data.accessCode, "var(--success-green)");
+    } catch (e) { msg("خطأ: " + e.message, "var(--danger-red)"); }
   }
-
   async function chargeResellerBalance(action) {
     const id = $("chargeSelectReseller").value;
     const amount = Number($("chargeAmount").value);
-    if (!id || !Number.isFinite(amount) || amount <= 0) {
-      return showMsg("⚠ Select a reseller and enter a valid amount.", "var(--danger-red)");
-    }
+    if (!id || !Number.isFinite(amount) || amount <= 0) return msg("اختر موزعاً وأدخل مبلغاً.", "var(--danger-red)");
     try {
-      await api("/api/admin/resellers/" + encodeURIComponent(id) + "/balance", {
-        method: "PATCH", body: JSON.stringify({ amount, action })
-      });
+      await api("/api/admin/resellers/" + encodeURIComponent(id) + "/balance", {method:"PATCH", body:JSON.stringify({amount, action})});
       $("chargeAmount").value = "";
       await loadAdminDashboard();
-      showMsg(action === "add" ? "✅ Balance added." : "✅ Balance deducted.", "var(--success-green)");
-    } catch (error) { showMsg("❌ " + error.message, "var(--danger-red)"); }
+      msg("تم تحديث الرصيد.", "var(--success-green)");
+    } catch (e) { msg("خطأ: " + e.message, "var(--danger-red)"); }
   }
-
   async function deleteReseller(id) {
-    if (!id || !confirm("Delete this reseller and all their keys?")) return;
-    try {
-      await api("/api/admin/resellers/" + encodeURIComponent(id), { method: "DELETE" });
-      await loadAdminDashboard();
-      showMsg("✅ Reseller deleted.", "var(--success-green)");
-    } catch (error) { showMsg("❌ " + error.message, "var(--danger-red)"); }
+    if (!confirm("حذف الموزع وكل مفاتيحه؟")) return;
+    try { await api("/api/admin/resellers/" + encodeURIComponent(id), {method:"DELETE"}); await loadAdminDashboard(); msg("تم حذف الموزع.", "var(--success-green)"); }
+    catch (e) { msg("خطأ: " + e.message, "var(--danger-red)"); }
   }
-
-  async function deleteAllSystemKeys() {
-    if (!confirm("Delete every key in the system? This cannot be undone.")) return;
-    try {
-      const result = await api("/api/admin/keys", { method: "DELETE" });
-      await loadAdminDashboard();
-      showMsg("✅ Deleted " + result.deleted + " keys.", "var(--success-green)");
-    } catch (error) { showMsg("❌ " + error.message, "var(--danger-red)"); }
+  function toggleSelectAll(master) {
+    document.querySelectorAll(".reseller-cb").forEach(cb => { cb.checked = master.checked; });
   }
-
-  function toggleSelectAll(input) {
-    document.querySelectorAll(".reseller-cb").forEach(box => { box.checked = input.checked; });
-  }
-
   async function deleteSelectedResellers() {
-    const selected = Array.from(document.querySelectorAll(".reseller-cb:checked")).map(input => input.value);
-    if (!selected.length) return showMsg("⚠ Select at least one reseller.", "var(--danger-red)");
-    if (!confirm("Delete " + selected.length + " selected resellers?")) return;
+    const ids = Array.from(document.querySelectorAll(".reseller-cb:checked")).map(cb => cb.value);
+    if (!ids.length) return msg("حدد موزعاً أولاً.", "var(--danger-red)");
+    if (!confirm("حذف " + ids.length + " موزع؟")) return;
     try {
-      for (const id of selected) {
-        await api("/api/admin/resellers/" + encodeURIComponent(id), { method: "DELETE" });
-      }
+      for (const id of ids) await api("/api/admin/resellers/" + encodeURIComponent(id), {method:"DELETE"});
       await loadAdminDashboard();
-      showMsg("✅ Selected resellers deleted.", "var(--success-green)");
-    } catch (error) { showMsg("❌ " + error.message, "var(--danger-red)"); }
+      msg("تم حذف الموزعين المحددين.", "var(--success-green)");
+    } catch (e) { msg("خطأ: " + e.message, "var(--danger-red)"); }
   }
-
   async function copyText(value) {
-    try {
-      await navigator.clipboard.writeText(value);
-      showMsg("✅ Copied.", "var(--success-green)");
-    } catch {
-      const textarea = document.createElement("textarea");
-      textarea.value = value;
-      textarea.style.position = "fixed";
-      textarea.style.opacity = "0";
-      document.body.appendChild(textarea);
-      textarea.select();
-      try {
-        if (document.execCommand("copy")) showMsg("✅ Copied.", "var(--success-green)");
-        else showMsg("Copy failed.", "var(--danger-red)");
-      } catch { showMsg("Copy failed.", "var(--danger-red)"); }
-      textarea.remove();
+    try { await navigator.clipboard.writeText(String(value || "")); msg("تم النسخ.", "var(--success-green)"); }
+    catch {
+      const area = document.createElement("textarea");
+      area.value = String(value || ""); area.style.position = "fixed"; area.style.opacity = "0";
+      document.body.appendChild(area); area.select();
+      let ok = false; try { ok = document.execCommand("copy"); } catch {}
+      area.remove(); msg(ok ? "تم النسخ." : "تعذر النسخ.", ok ? "var(--success-green)" : "var(--danger-red)");
     }
   }
-
   function shareKey(key, duration, devices) {
-    const message = "🔥 HAX_NON_ROOT 🔥\n\n🔑 Key: " + key +
-      "\n⏱ Duration: " + duration + "\n📱 Allowed Devices: " + devices +
-      "\n\nEnjoy your access!";
-    copyText(message);
+    copyText("🔥 HAX_NON_ROOT 🔥\\n\\n🔑 Key: " + key + "\\n⏱ Duration: " + duration + "\\n📱 Allowed Devices: " + devices + "\\n🌐 Happ Subscription: " + HAPP);
   }
-
   document.addEventListener("click", event => {
-    const button = event.target.closest("[data-act]");
-    if (!button) return;
-    if (button.dataset.act === "share") shareKey(button.dataset.k, button.dataset.d, button.dataset.v);
-    if (button.dataset.act === "delkey") deleteResellerKey(button.dataset.id);
-    if (button.dataset.act === "delres") deleteReseller(button.dataset.id);
-    if (button.dataset.act === "keytoggle") toggleAdminKey(button.dataset.id, button.dataset.active === "true");
-    if (button.dataset.act === "keyreset") resetAdminKeyDevices(button.dataset.id);
-    if (button.dataset.act === "keydelete") deleteAdminKey(button.dataset.id);
-    if (button.dataset.act === "keyexpiry") saveAdminKeyExpiry(button.dataset.id);
-    if (button.dataset.act === "keydevices") saveAdminKeyDevices(button.dataset.id);
-    if (button.dataset.act === "copyone") copyText(button.dataset.code || "");
+    const el = event.target.closest("[data-act]");
+    if (!el) return;
+    if (el.dataset.act === "share") shareKey(el.dataset.k, el.dataset.d, el.dataset.v);
+    else if (el.dataset.act === "delkey") deleteResellerKey(el.dataset.k);
+    else if (el.dataset.act === "delres") deleteReseller(el.dataset.c);
   });
+  $("resellerInputCode").addEventListener("keydown", e => { if (e.key === "Enter") loginAsReseller(); });
+  $("adminInputPass").addEventListener("keydown", e => { if (e.key === "Enter") loginAsAdmin(); });
 
   window.toggleAccordion = toggleAccordion;
-  window.showClientLogin = showClientLogin;
-  window.clientLogin = clientLogin;
-  window.clientLogout = clientLogout;
-  window.toggleClientKeyVisibility = toggleClientKeyVisibility;
-  window.pasteClientKey = pasteClientKey;
-  window.toggleClientDisplayKey = toggleClientDisplayKey;
-  window.copyClientKey = copyClientKey;
-  window.launchHapp = launchHapp;
   window.showAdminLogin = showAdminLogin;
   window.showResellerLogin = showResellerLogin;
   window.loginAsReseller = loginAsReseller;
@@ -627,11 +244,9 @@
   window.generateKeys = generateKeys;
   window.deleteAllResellerKeys = deleteAllResellerKeys;
   window.deleteAllSystemKeys = deleteAllSystemKeys;
+  window.updateBasePrice = updateBasePrice;
   window.addNewReseller = addNewReseller;
   window.chargeResellerBalance = chargeResellerBalance;
   window.toggleSelectAll = toggleSelectAll;
   window.deleteSelectedResellers = deleteSelectedResellers;
-  window.loadAdminDashboard = loadAdminDashboard;
-  window.adminGenerateKeys = adminGenerateKeys;
-  window.copyAdminCreatedKeys = copyAdminCreatedKeys;
 })();
