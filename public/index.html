@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HAX_NON_ROOT | بوابة العميل ولوحات التحكم</title>
+<title>HAX_NON_ROOT — Reseller & Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
 <style>
 :root {
 --bg-dark: #030407;
 --card-bg: #0A0D14;
 --card-border: rgba(229, 9, 20, 0.25);
---accent-blue: #E50914;
---accent-glow: #FF4D5A;
+--accent-blue: #e50914;
+--accent-glow: #ff4757;
 --text-white: #ffffff;
 --text-muted: #78909C;
 --danger-red: #FF1744;
@@ -22,7 +22,7 @@
 }
 * { box-sizing: border-box; font-family: 'Cairo', sans-serif; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 body {
-background: radial-gradient(circle at center, #180609 0%, var(--bg-dark) 100%);
+background: radial-gradient(circle at center, #16070a 0%, var(--bg-dark) 100%);
 color: var(--text-white);
 min-height: 100vh;
 padding: 20px 15px;
@@ -59,7 +59,7 @@ letter-spacing: 1.5px;
 font-style: italic;
 line-height: 1.1;
 color: #fff;
-text-shadow: 0 0 10px rgba(229, 9, 20, 0.5);
+text-shadow: 0 0 10px rgba(229,9,20,0.5);
 }
 .brand-logo span { display: block; font-size: 0.75rem; color: var(--accent-glow); letter-spacing: 3px; font-style: normal; margin-top: 2px; text-shadow: 0 0 8px var(--accent-glow); }
 .top-pill-btn {
@@ -100,8 +100,8 @@ transition: 0.3s;
 }
 .nav-btn.active { color: var(--accent-glow); border-color: var(--accent-glow); box-shadow: var(--neon-glow); }
 .btn-share-vibrant {
-background: linear-gradient(135deg, #E50914, #A80712);
-border: 1px solid #FF4D5A;
+background: linear-gradient(135deg, #e50914, #b10e1a);
+border: 1px solid #ff4757;
 color: #fff;
 padding: 8px 14px;
 border-radius: 12px;
@@ -192,7 +192,7 @@ box-shadow: inset 0 0 8px rgba(0,0,0,0.8);
 .input-field:focus { border-color: var(--accent-glow); box-shadow: var(--neon-glow), inset 0 0 8px rgba(229, 9, 20, 0.2); }
 .btn-submit {
 width: 100%;
-background: linear-gradient(135deg, #A80712, #E50914);
+background: linear-gradient(135deg, #b10e1a, #e50914);
 border: 1px solid var(--accent-glow);
 border-radius: 12px;
 color: #fff;
@@ -271,7 +271,7 @@ box-shadow: 0 0 10px rgba(255, 23, 68, 0.3);
 transition: 0.3s;
 }
 .btn-trash:hover { background: rgba(255, 23, 68, 0.3); box-shadow: 0 0 15px rgba(255, 23, 68, 0.6); }
-.msg-box { font-size: 0.8rem; text-align: center; min-height: 18px; margin-top: 4px; font-weight: 700; text-shadow: 0 0 10px rgba(229, 9, 20, 0.4); }
+.msg-box { font-size: 0.8rem; text-align: center; min-height: 18px; margin-top: 4px; font-weight: 700; text-shadow: 0 0 10px rgba(229,9,20,0.4); }
 .hidden { display: none !important; }
 .auth-container-center {
 display: flex;
@@ -288,83 +288,21 @@ background: none; border: none; color: var(--accent-glow); font-size: 0.75rem; c
 text-shadow: 0 0 8px var(--accent-glow);
 }
 .footer-link-btn:hover { opacity: 0.9; }
-
-.logout-btn{background:rgba(255,23,68,.14);border:1px solid rgba(255,23,68,.45);color:#ff6477;padding:7px 14px;border-radius:10px;font-size:.75rem;font-weight:800;cursor:pointer}
-.status-pill{display:inline-flex;align-items:center;gap:6px;font-size:.75rem;font-weight:800;color:var(--success-green);text-shadow:0 0 8px var(--success-green)}
-.dash-hero-container{display:flex;flex-direction:column;align-items:center;justify-content:center;margin:8px 0 18px}
-.footer-contact a{color:var(--accent-glow);text-decoration:none;font-weight:900}
-/* Client portal — matching the supplied neon dashboard reference */
-body{position:relative;background:radial-gradient(circle at center,#190609 0%,#030407 72%);overflow-x:hidden}
-body::before{content:"";position:fixed;inset:0;background-image:linear-gradient(rgba(229,9,20,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(229,9,20,.035) 1px,transparent 1px);background-size:35px 35px;pointer-events:none;z-index:-1}
-.dashboard-container{max-width:420px;min-height:calc(100dvh - 40px)}
-.client-brand{text-align:center;margin:28px 0 34px}
-.client-brand .brand-logo{font-size:2.35rem;letter-spacing:3px}
-.client-brand .brand-logo span{font-size:1.65rem;letter-spacing:5px}
-.client-login-card{width:100%;background:rgba(10,13,20,.94);border:1px solid var(--card-border);border-radius:16px;padding:20px;box-shadow:0 8px 32px rgba(0,0,0,.8),0 0 16px rgba(229,9,20,.14)}
-.client-input-row{display:flex;align-items:center;gap:7px;background:#08090d;border:1px solid var(--card-border);border-radius:13px;padding:7px;margin:9px 0 16px}
-.client-input-row input{min-width:0;flex:1;background:transparent;border:0;outline:0;color:#fff;text-align:center;font-family:Orbitron,Cairo,sans-serif;font-size:.88rem;padding:11px 5px;letter-spacing:1px}
-.client-mini-btn{background:rgba(229,9,20,.15);border:1px solid var(--card-border);color:#fff;padding:9px 11px;border-radius:9px;font-weight:800;font-size:.72rem}
-.client-circle{position:relative;width:190px;height:190px;margin:15px auto 22px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,rgba(229,9,20,.12),transparent 72%);box-shadow:0 0 30px rgba(229,9,20,.13),inset 0 0 20px rgba(229,9,20,.08)}
-.client-circle svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);animation:haxRing 22s linear infinite}
-.client-circle circle{fill:none;stroke:var(--accent-blue);stroke-width:2.5;stroke-dasharray:4 4;filter:drop-shadow(0 0 5px var(--accent-glow))}
-@keyframes haxRing{to{transform:rotate(270deg)}}
-.client-circle-content{position:relative;z-index:1;text-align:center}
-.client-timer{font-family:Orbitron,sans-serif;font-weight:900;font-size:1.2rem;direction:ltr;color:#fff;text-shadow:0 0 12px rgba(255,255,255,.5);margin-top:8px}
-.client-timer small{font-size:.58rem;color:var(--accent-glow);margin:0 2px}
-.client-muted{font-size:.66rem;color:var(--text-muted);font-weight:800;margin-top:4px}
-.client-key-card{display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:right}
-.client-key-card code{font-family:Orbitron,sans-serif;color:var(--accent-glow);font-size:.78rem;overflow-wrap:anywhere}
-.client-info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
-.client-info{background:var(--card-bg);border:1px solid var(--card-border);border-radius:12px;padding:10px 5px;text-align:center}
-.client-info small{display:block;color:var(--text-muted);font-size:.6rem;font-weight:800}
-.client-info b{display:block;color:#fff;font-size:.7rem;margin-top:4px;overflow-wrap:anywhere}
-.client-subscribe{display:flex;align-items:center;justify-content:space-between;text-align:right;padding:15px 17px;margin-top:12px}
-.client-subscribe span{display:block;font-size:.68rem;opacity:.9}
-.client-links{display:flex;justify-content:center;gap:10px;margin:15px 0}
-.client-links button{background:transparent;border:0;color:var(--accent-glow);font-weight:800;font-size:.72rem}
-@media(max-width:480px){.dashboard-container{min-height:calc(100dvh - 30px)}}
 </style>
 </head>
 <body>
 
 <div class="dashboard-container" id="appRoot">
 
-<!-- ================= 0. بوابة دخول المستخدم ================= -->
-<div id="clientLoginView" class="auth-container-center">
-  <div class="brand-logo-container">
-    <div class="brand-logo">HAX_NON_ROOT<span>CLIENT</span></div>
-    <div class="nav-btns">
-      <button class="top-pill-btn" onclick="showAdminLogin()">ADMIN</button>
-      <button class="top-pill-btn" onclick="showResellerLogin()">RESELLER</button>
-    </div>
-  </div>
-  <div class="client-brand">
-    <div class="auth-sub">SECURE ACCESS GATEWAY</div>
-    <div style="font-size:1.45rem;font-weight:900;margin-top:8px;">مفتاحك، <span style="color:var(--accent-glow);">بوابتك</span></div>
-    <div class="auth-sub" style="margin-top:6px;">أدخل مفتاح HAX_NON_ROOT للمتابعة</div>
-  </div>
-  <div class="client-login-card">
-    <div style="font-size:.72rem;color:var(--accent-glow);font-weight:800;text-align:right;">مفتاح الدخول</div>
-    <div class="client-input-row">
-      <input id="clientAccessKey" type="password" placeholder="Nacer-XXXX_XXXX-XXXX" autocomplete="off" spellcheck="false">
-      <button class="client-mini-btn" onclick="toggleClientKeyVisibility()" type="button">👁</button>
-      <button class="client-mini-btn" onclick="pasteClientKey()" type="button">لصق</button>
-    </div>
-    <button id="clientLoginButton" class="btn-submit" onclick="clientLogin()">تحقق ودخول النظام</button>
-    <div class="msg-box" id="clientLoginMessage"></div>
-  </div>
-  <div class="footer-contact" style="text-align:center;margin-top:20px;font-size:.72rem;color:var(--text-muted);">HAX_NON_ROOT · NACER_22</div>
-</div>
-
 <!-- ================= 1. شاشة تسجيل دخول الموزع ================= -->
-<div id="resellerLoginView" class="auth-container-center hidden">
+<div id="resellerLoginView" class="auth-container-center">
 <div class="brand-logo-container">
 <button class="top-pill-btn" onclick="showAdminLogin()">
 🛡 RESELLER ACCESS
 </button>
 <div class="brand-logo" style="text-align: left;">
 HAX_NON_ROOT
-<span>CLIENT</span>
+<span>RESELLER</span>
 </div>
 </div>
 
@@ -381,8 +319,9 @@ HAX_NON_ROOT
 
 <div style="margin-top: 15px; display: flex; flex-direction: column; gap: 10px; align-items: center;">
 <span style="font-size: 0.7rem; color: var(--text-muted);">No key? Contact your seller.</span>
-<button class="footer-link-btn" onclick="showAdminLogin()">🛡 ADMIN ACCESS</button>
-<button class="footer-link-btn" onclick="showClientLogin()">← CLIENT LOGIN</button>
+<button class="footer-link-btn" onclick="showAdminLogin()">
+🛡 ADMIN ACCESS
+</button>
 </div>
 </div>
 </div>
@@ -395,7 +334,7 @@ HAX_NON_ROOT
 </button>
 <div class="brand-logo" style="text-align: left;">
 HAX_NON_ROOT
-<span>CLIENT</span>
+<span>RESELLER</span>
 </div>
 </div>
 
@@ -403,7 +342,6 @@ HAX_NON_ROOT
 <div class="auth-sub">RESTRICTED AREA<br>AUTHORIZED PERSONNEL ONLY</div>
 
 <div style="position: relative; display: flex; align-items: center; margin-top: 10px;">
-<input type="text" id="adminInputUser" class="input-field" placeholder="ENTER ADMIN USERNAME" autocomplete="username" style="text-align:center;">
 <input type="password" id="adminInputPass" class="input-field" placeholder="ENTER ADMIN PASSWORD" autocomplete="off" style="padding-left: 45px; text-align: center;">
 <span style="position: absolute; left: 16px; color: var(--accent-glow); font-size: 0.9rem;">🔒</span>
 </div>
@@ -411,56 +349,17 @@ HAX_NON_ROOT
 <button class="btn-submit" onclick="loginAsAdmin()">→ LOGIN</button>
 
 <div style="margin-top: 15px; text-align: center;">
-<button class="footer-link-btn" onclick="showResellerLogin()">◄ BACK TO RESELLER LOGIN</button>
-<button class="footer-link-btn" onclick="showClientLogin()">← CLIENT LOGIN</button>
+<button class="footer-link-btn" onclick="showResellerLogin()">
+◄ BACK TO RESELLER LOGIN
+</button>
 </div>
 </div>
-</div>
-
-<!-- ================= لوحة المستخدم بعد التحقق ================= -->
-<div id="clientPanel" class="hidden" style="width:100%;">
-  <div class="header-bar">
-    <button class="logout-btn" onclick="clientLogout()">خروج</button>
-    <div class="status-pill" style="color:var(--success-green);">● متصل بأمان</div>
-  </div>
-  <div class="dash-hero-container">
-    <div class="client-circle">
-      <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="45"/></svg>
-      <div class="client-circle-content">
-        <div class="brand-logo" style="font-size:1.05rem;">HAX<span style="display:block;color:var(--accent-glow);font-size:.85rem;">NON_ROOT</span></div>
-        <div id="clientTimer" class="client-timer">00<small>H</small> 00<small>M</small> 00<small>S</small></div>
-        <div class="client-muted">الوقت المتبقي للاشتراك</div>
-      </div>
-    </div>
-  </div>
-  <div class="stat-card client-key-card">
-    <div style="min-width:0;">
-      <div class="client-muted">مفتاح الدخول النشط</div>
-      <code id="clientDisplayKey">••••••••••••</code>
-    </div>
-    <div style="display:flex;gap:6px;">
-      <button class="client-mini-btn" onclick="toggleClientDisplayKey()">👁</button>
-      <button class="client-mini-btn" onclick="copyClientKey()">نسخ</button>
-    </div>
-  </div>
-  <div class="client-info-grid">
-    <div class="client-info"><small>الأجهزة المسموحة</small><b id="clientDeviceLimit">-</b></div>
-    <div class="client-info"><small>تاريخ التفعيل</small><b id="clientCreatedAt">-</b></div>
-    <div class="client-info"><small>تاريخ الانتهاء</small><b id="clientExpiresAt">-</b></div>
-  </div>
-  <button class="btn-submit client-subscribe" onclick="launchHapp()">
-    <span><b>إضافة الاشتراك إلى Happ</b><span>ربط مباشر بتطبيق Happ VPN</span></span><b style="font-size:1.3rem;">➜</b>
-  </button>
-  <div class="client-links">
-    <button onclick="window.open('https://t.me/HWAY_2','_blank')">قناة الدعم</button>
-    <button onclick="clientLogout()">تبديل المفتاح</button>
-  </div>
 </div>
 
 <!-- ================= 3. لوحة تحكم الموزع ================= -->
 <div id="resellerPanel" class="hidden" style="width:100%;">
 <div class="header-bar">
-<div class="brand-logo" style="font-size: 1.2rem;">HAX_NON_ROOT<span>CLIENT</span></div>
+<div class="brand-logo" style="font-size: 1.2rem;">HAX_NON_ROOT<span>RESELLER</span></div>
 <div class="nav-btns">
 <button class="nav-btn active">👤 RESELLER</button>
 <button class="nav-btn" onclick="logout()">LOGOUT ➔</button>
@@ -534,7 +433,7 @@ HAX_NON_ROOT
 <!-- ================= 4. لوحة تحكم الأدمن ================= -->
 <div id="adminPanel" class="hidden" style="width:100%;">
 <div class="header-bar">
-<div class="brand-logo" style="font-size: 1.2rem;">HAX_NON_ROOT<span>CLIENT</span></div>
+<div class="brand-logo" style="font-size: 1.2rem;">HAX_NON_ROOT<span>RESELLER</span></div>
 <div class="nav-btns">
 <button class="nav-btn active">⬡ ADMIN</button>
 <button class="nav-btn" onclick="logout()">LOGOUT ➔</button>
@@ -555,8 +454,8 @@ HAX_NON_ROOT
 <div class="stat-label">BALANCE</div>
 </div>
 <div class="stat-card">
-<div class="stat-value" id="statPrice">0</div>
-<div class="stat-label">ACTIVE KEYS</div>
+<div class="stat-value" id="statPrice" style="color:var(--accent-glow);">1.00</div>
+<div class="stat-label">PRICE</div>
 </div>
 </div>
 
@@ -571,12 +470,27 @@ HAX_NON_ROOT
 </div>
 
 <div class="accordion-item">
+<div class="accordion-header active" onclick="toggleAccordion(this)">
+<span>🏷 KEY PRICE</span>
+<span class="accordion-icon">❯</span>
+</div>
+<div class="accordion-content show">
+<div style="text-align: center; margin-bottom: 4px;">
+<div style="font-size: 0.65rem; color: var(--text-muted); font-weight: 700;">CURRENT PRICE</div>
+<div style="font-family:'Orbitron'; font-size:1.6rem; color:var(--accent-glow); font-weight:800; text-shadow:var(--neon-glow);" id="currentPriceDisplay">1.00</div>
+</div>
+<input type="number" id="basePriceInput" class="input-field" value="1.00" step="0.1" inputmode="decimal">
+<button class="btn-submit" id="updatePriceBtn" onclick="updateBasePrice()">💾 UPDATE PRICE</button>
+</div>
+</div>
+
+<div class="accordion-item">
 <div class="accordion-header" onclick="toggleAccordion(this)">
 <span>👤 ADD RESELLER</span>
 <span class="accordion-icon">❯</span>
 </div>
 <div class="accordion-content">
-<input type="text" id="addResellerName" class="input-field" placeholder="Reseller name" autocomplete="off">
+<input type="text" id="addResellerCode" class="input-field" placeholder="Reseller code" autocomplete="off">
 <input type="number" id="addResellerBal" class="input-field" placeholder="Initial Balance" value="10" inputmode="decimal">
 <button class="btn-submit" onclick="addNewReseller()">➕ ADD RESELLER</button>
 </div>
@@ -591,7 +505,7 @@ HAX_NON_ROOT
 <select id="chargeSelectReseller" class="input-field"></select>
 <input type="number" id="chargeAmount" class="input-field" placeholder="المبلغ (اضافه أو خصم)" inputmode="decimal">
 <div style="display:flex; gap:10px;">
-<button class="btn-submit" style="background:linear-gradient(135deg, #00E676, #E50914); box-shadow:var(--neon-green-glow);" onclick="chargeResellerBalance('add')">➕ إضافة رصيد</button>
+<button class="btn-submit" style="background:linear-gradient(135deg, #00E676, #e50914); box-shadow:var(--neon-green-glow);" onclick="chargeResellerBalance('add')">➕ إضافة رصيد</button>
 <button class="btn-submit" style="background:linear-gradient(135deg, #FF1744, #C62828); box-shadow:0 0 15px rgba(255,23,68,0.4);" onclick="chargeResellerBalance('deduct')">➖ خصم رصيد</button>
 </div>
 </div>
@@ -622,45 +536,6 @@ HAX_NON_ROOT
 <tbody id="adminResellersTableBody"></tbody>
 </table>
 </div>
-</div>
-
-<div class="accordion-item">
-  <div class="accordion-header active" onclick="toggleAccordion(this)">
-    <span>🔐 إدارة جميع المفاتيح</span>
-    <span class="accordion-icon">❯</span>
-  </div>
-  <div class="accordion-content show">
-    <div style="font-size:.72rem;color:var(--accent-glow);font-weight:800;">إنشاء مفاتيح مباشرة من الإدارة</div>
-    <select id="adminKeyDuration" class="input-field">
-      <option value="3600000">ساعة واحدة</option><option value="10800000">3 ساعات</option>
-      <option value="21600000">6 ساعات</option><option value="43200000">12 ساعة</option>
-      <option value="86400000">24 ساعة</option><option value="259200000">3 أيام</option>
-      <option value="604800000">7 أيام</option><option value="1296000000">15 يوماً</option>
-      <option value="2592000000" selected>30 يوماً</option>
-    </select>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-      <select id="adminKeyDevices" class="input-field" style="flex:1;min-width:110px;">
-        <option value="1">جهاز واحد</option><option value="2">جهازان</option><option value="3">3 أجهزة</option><option value="5">5 أجهزة</option>
-      </select>
-      <input id="adminKeyQuantity" class="input-field" type="number" min="1" max="50" value="1" style="flex:1;min-width:90px;" aria-label="عدد المفاتيح">
-    </div>
-    <button class="btn-submit" onclick="adminGenerateKeys()">＋ إنشاء مفاتيح</button>
-    <div id="adminCreatedKeys" class="hidden" style="margin-top:10px;padding:12px;border:1px solid rgba(0,230,118,.35);border-radius:12px;background:rgba(0,230,118,.07);">
-      <div style="color:var(--success-green);font-size:.75rem;font-weight:900;margin-bottom:8px;">المفاتيح الجديدة</div>
-      <div id="adminCreatedKeysList" style="display:grid;gap:7px;"></div>
-      <button class="btn-share-vibrant" style="margin-top:10px;" onclick="copyAdminCreatedKeys()">نسخ جميع المفاتيح</button>
-    </div>
-    <div class="table-header-action" style="margin-top:18px;">
-      <span style="font-size:.75rem;color:var(--text-muted);">كل مفاتيح النظام</span>
-      <button class="top-pill-btn" onclick="loadAdminDashboard()">تحديث</button>
-    </div>
-    <div style="overflow-x:auto;">
-      <table class="resellers-table" style="min-width:720px;">
-        <thead><tr><th>المفتاح</th><th>المالك</th><th>الانتهاء</th><th>الأجهزة</th><th>المستخدم</th><th>الحالة</th><th>التحكم</th></tr></thead>
-        <tbody id="adminKeysTableBody"><tr><td colspan="7" style="text-align:center;">جارٍ التحميل...</td></tr></tbody>
-      </table>
-    </div>
-  </div>
 </div>
 
 </div>
