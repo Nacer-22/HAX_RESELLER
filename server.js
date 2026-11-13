@@ -501,12 +501,33 @@ app.post("/api/check", verifyLimiter, async (req, res) => {
   return res.json({ valid: true, expires_at: key.expiresAt, created_at: key.createdAt, max_devices: key.devices, code: key.code });
 });
 
+function inferDeviceFromUserAgent(userAgent) {
+  const ua = String(userAgent || "");
+  const android = ua.match(/Android\s[\d.]+\s*;\s*([^;)]+)/i);
+  if (android) {
+    const candidate = android[1].replace(/\s+Build\/.*/i, "").trim();
+    if (candidate && !/^(?:k|wv|mobile|linux|unknown)$/i.test(candidate)) return candidate.slice(0, 80);
+  }
+  if (/iPhone/i.test(ua)) return "iPhone (الموديل الدقيق مخفي من المتصفح)";
+  if (/iPad/i.test(ua)) return "iPad (الموديل الدقيق مخفي من المتصفح)";
+  if (/Windows NT/i.test(ua)) return "كمبيوتر Windows (الموديل غير متاح من المتصفح)";
+  if (/Macintosh|Mac OS X/i.test(ua)) return "Mac (الموديل غير متاح من المتصفح)";
+  if (/CrOS/i.test(ua)) return "Chromebook";
+  if (/Linux/i.test(ua)) return "كمبيوتر Linux (الموديل غير متاح من المتصفح)";
+  return "الموديل غير متاح من المتصفح";
+}
+
 app.post("/api/verify", verifyLimiter, async (req, res) => {
   const code = normalizeLicenseCode(req.body?.code);
   const deviceId = String(req.body?.device_id || "").trim();
+  res.setHeader("Accept-CH", "Sec-CH-UA-Model, Sec-CH-UA-Platform");
+  res.setHeader("Vary", "User-Agent, Sec-CH-UA-Model");
   const rawModel = String(req.body?.device_model || "").trim();
-  const rawPlatform = String(req.body?.device_platform || "").trim();
-  const deviceModel = rawModel.replace(/[<>\u0000-\u001f]/g, "").slice(0, 80) || "الموديل غير متاح";
+  const rawPlatform = String(req.body?.device_platform || req.get("sec-ch-ua-platform") || "").trim();
+  const hintedModel = String(req.get("sec-ch-ua-model") || "").replace(/^"|"$/g, "").trim();
+  const uaModel = inferDeviceFromUserAgent(req.get("user-agent"));
+  const suppliedModel = rawModel && rawModel !== "الموديل غير متاح من المتصفح" ? rawModel : "";
+  const deviceModel = (suppliedModel || hintedModel || uaModel).replace(/[<>\u0000-\u001f]/g, "").slice(0, 80);
   const devicePlatform = rawPlatform.replace(/[<>\u0000-\u001f]/g, "").slice(0, 40);
   if (!isSupportedLicenseCode(code)) return res.json({ valid: false, reason: "invalid_format" });
   if (deviceId.length < 8 || deviceId.length > 200) return res.json({ valid: false, reason: "missing_params" });
