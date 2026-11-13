@@ -297,7 +297,7 @@ text-shadow: 0 0 8px var(--accent-glow);
 <!-- ================= 1. شاشة تسجيل دخول الموزع ================= -->
 <div id="resellerLoginView" class="auth-container-center">
 <div class="brand-logo-container">
-<button class="top-pill-btn" onclick="showAdminLogin()">
+<button class="top-pill-btn" data-ui-click="showAdminLogin">
 🛡 RESELLER ACCESS
 </button>
 <div class="brand-logo" style="text-align: left;">
@@ -315,11 +315,11 @@ HAX_NON_ROOT
 <span style="position: absolute; left: 16px; color: var(--accent-glow); font-size: 0.9rem;">🔑</span>
 </div>
 
-<button class="btn-submit" onclick="loginAsReseller()">→ UNLOCK</button>
+<button class="btn-submit" data-ui-click="loginAsReseller">→ UNLOCK</button>
 
 <div style="margin-top: 15px; display: flex; flex-direction: column; gap: 10px; align-items: center;">
 <span style="font-size: 0.7rem; color: var(--text-muted);">No key? Contact your seller.</span>
-<button class="footer-link-btn" onclick="showAdminLogin()">
+<button class="footer-link-btn" data-ui-click="showAdminLogin">
 🛡 ADMIN ACCESS
 </button>
 </div>
@@ -329,7 +329,7 @@ HAX_NON_ROOT
 <!-- ================= 2. شاشة تسجيل دخول الأدمن ================= -->
 <div id="adminLoginView" class="auth-container-center hidden">
 <div class="brand-logo-container">
-<button class="top-pill-btn" onclick="showResellerLogin()">
+<button class="top-pill-btn" data-ui-click="showResellerLogin">
 🛡 ADMIN ACCESS
 </button>
 <div class="brand-logo" style="text-align: left;">
@@ -346,10 +346,10 @@ HAX_NON_ROOT
 <span style="position: absolute; left: 16px; color: var(--accent-glow); font-size: 0.9rem;">🔒</span>
 </div>
 
-<button class="btn-submit" onclick="loginAsAdmin()">→ LOGIN</button>
+<button class="btn-submit" data-ui-click="loginAsAdmin">→ LOGIN</button>
 
 <div style="margin-top: 15px; text-align: center;">
-<button class="footer-link-btn" onclick="showResellerLogin()">
+<button class="footer-link-btn" data-ui-click="showResellerLogin">
 ◄ BACK TO RESELLER LOGIN
 </button>
 </div>
@@ -362,7 +362,7 @@ HAX_NON_ROOT
 <div class="brand-logo" style="font-size: 1.2rem;">HAX_NON_ROOT<span>RESELLER</span></div>
 <div class="nav-btns">
 <button class="nav-btn active">👤 RESELLER</button>
-<button class="nav-btn" onclick="logout()">LOGOUT ➔</button>
+<button class="nav-btn" data-ui-click="logout">LOGOUT ➔</button>
 </div>
 </div>
 
@@ -375,7 +375,7 @@ HAX_NON_ROOT
 </div>
 
 <div class="accordion-item">
-<div class="accordion-header active" onclick="toggleAccordion(this)">
+<div class="accordion-header active" data-ui-click="toggleAccordion">
 <span>⚡ GENERATE KEYS</span>
 <span class="accordion-icon">❯</span>
 </div>
@@ -404,7 +404,7 @@ HAX_NON_ROOT
 
 <div style="display:flex; align-items:center; gap:10px; margin-top:5px;">
 <input type="number" id="keyQuantityInput" class="input-field" value="1" min="1" max="10" inputmode="numeric" style="max-width:100px;" title="كمية المفاتيح (1-10)">
-<button class="btn-submit" id="generateBtn" onclick="generateKeys()">🔥 GENERATE KEYS</button>
+<button class="btn-submit" id="generateBtn" data-ui-click="generateKeys">🔥 GENERATE KEYS</button>
 </div>
 </div>
 </div>
@@ -417,12 +417,12 @@ HAX_NON_ROOT
 </div>
 
 <div class="accordion-item">
-<div class="accordion-header active" onclick="toggleAccordion(this)">
+<div class="accordion-header active" data-ui-click="toggleAccordion">
 <span>🔑 MY KEYS</span>
 <span class="accordion-icon">❯</span>
 </div>
 <div class="accordion-content show">
-<button class="btn-danger-all" style="margin-bottom: 8px;" onclick="deleteAllResellerKeys()">🗑 DELETE ALL MY KEYS</button>
+<button class="btn-danger-all" style="margin-bottom: 8px;" data-ui-click="deleteAllResellerKeys">🗑 DELETE ALL MY KEYS</button>
 <div id="resellerKeysList" style="max-height: 240px; overflow-y: auto; display:flex; flex-direction:column; gap:8px;">
 <div style="text-align:center; color:var(--text-muted); font-size:0.8rem;">No keys created yet</div>
 </div>
@@ -436,7 +436,7 @@ HAX_NON_ROOT
 <div class="brand-logo" style="font-size: 1.2rem;">HAX_NON_ROOT<span>RESELLER</span></div>
 <div class="nav-btns">
 <button class="nav-btn active">⬡ ADMIN</button>
-<button class="nav-btn" onclick="logout()">LOGOUT ➔</button>
+<button class="nav-btn" data-ui-click="logout">LOGOUT ➔</button>
 </div>
 </div>
 
@@ -460,17 +460,17 @@ HAX_NON_ROOT
 </div>
 
 <div class="accordion-item">
-<div class="accordion-header active" onclick="toggleAccordion(this)">
+<div class="accordion-header active" data-ui-click="toggleAccordion">
 <span>⚠️ SYSTEM KEYS CONTROL</span>
 <span class="accordion-icon">❯</span>
 </div>
 <div class="accordion-content show">
-<button class="btn-danger-all" onclick="deleteAllSystemKeys()">🔥 DELETE ALL KEYS IN SYSTEM</button>
+<button class="btn-danger-all" data-ui-click="deleteAllSystemKeys">🔥 DELETE ALL KEYS IN SYSTEM</button>
 </div>
 </div>
 
 <div class="accordion-item">
-<div class="accordion-header active" onclick="toggleAccordion(this)">
+<div class="accordion-header active" data-ui-click="toggleAccordion">
 <span>🏷 KEY PRICE</span>
 <span class="accordion-icon">❯</span>
 </div>
@@ -480,24 +480,24 @@ HAX_NON_ROOT
 <div style="font-family:'Orbitron'; font-size:1.6rem; color:var(--accent-glow); font-weight:800; text-shadow:var(--neon-glow);" id="currentPriceDisplay">1.00</div>
 </div>
 <input type="number" id="basePriceInput" class="input-field" value="1.00" step="0.1" inputmode="decimal">
-<button class="btn-submit" id="updatePriceBtn" onclick="updateBasePrice()">💾 UPDATE PRICE</button>
+<button class="btn-submit" id="updatePriceBtn" data-ui-click="updateBasePrice">💾 UPDATE PRICE</button>
 </div>
 </div>
 
 <div class="accordion-item">
-<div class="accordion-header" onclick="toggleAccordion(this)">
+<div class="accordion-header" data-ui-click="toggleAccordion">
 <span>👤 ADD RESELLER</span>
 <span class="accordion-icon">❯</span>
 </div>
 <div class="accordion-content">
 <input type="text" id="addResellerCode" class="input-field" placeholder="Reseller code" autocomplete="off">
 <input type="number" id="addResellerBal" class="input-field" placeholder="Initial Balance" value="10" inputmode="decimal">
-<button class="btn-submit" onclick="addNewReseller()">➕ ADD RESELLER</button>
+<button class="btn-submit" data-ui-click="addNewReseller">➕ ADD RESELLER</button>
 </div>
 </div>
 
 <div class="accordion-item">
-<div class="accordion-header" onclick="toggleAccordion(this)">
+<div class="accordion-header" data-ui-click="toggleAccordion">
 <span>💲 CHARGE & MANAGE BALANCE</span>
 <span class="accordion-icon">❯</span>
 </div>
@@ -505,23 +505,23 @@ HAX_NON_ROOT
 <select id="chargeSelectReseller" class="input-field"></select>
 <input type="number" id="chargeAmount" class="input-field" placeholder="المبلغ (اضافه أو خصم)" inputmode="decimal">
 <div style="display:flex; gap:10px;">
-<button class="btn-submit" style="background:linear-gradient(135deg, #00E676, #e50914); box-shadow:var(--neon-green-glow);" onclick="chargeResellerBalance('add')">➕ إضافة رصيد</button>
-<button class="btn-submit" style="background:linear-gradient(135deg, #FF1744, #C62828); box-shadow:0 0 15px rgba(255,23,68,0.4);" onclick="chargeResellerBalance('deduct')">➖ خصم رصيد</button>
+<button class="btn-submit" style="background:linear-gradient(135deg, #00E676, #e50914); box-shadow:var(--neon-green-glow);" data-ui-click="chargeAdd">➕ إضافة رصيد</button>
+<button class="btn-submit" style="background:linear-gradient(135deg, #FF1744, #C62828); box-shadow:0 0 15px rgba(255,23,68,0.4);" data-ui-click="chargeDeduct">➖ خصم رصيد</button>
 </div>
 </div>
 </div>
 
 <div class="accordion-item">
-<div class="accordion-header active" onclick="toggleAccordion(this)">
+<div class="accordion-header active" data-ui-click="toggleAccordion">
 <span>👥 RESELLERS <span style="font-size:0.75rem; color:var(--accent-glow);" id="totalResellersCount">0 TOTAL</span></span>
 <span class="accordion-icon">❯</span>
 </div>
 <div class="accordion-content show">
 <div class="table-header-action">
 <label style="font-size: 0.75rem; color: var(--text-muted); cursor: pointer; display:flex; align-items:center; gap:5px;">
-<input type="checkbox" id="selectAllCb" onchange="toggleSelectAll(this)"> Select All
+<input type="checkbox" id="selectAllCb" data-ui-change="toggleSelectAll"> Select All
 </label>
-<button class="btn-delete-selected" onclick="deleteSelectedResellers()">DELETE SELECTED</button>
+<button class="btn-delete-selected" data-ui-click="deleteSelectedResellers">DELETE SELECTED</button>
 </div>
 <table class="resellers-table">
 <thead>
