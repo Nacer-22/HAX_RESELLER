@@ -311,7 +311,7 @@
     box.innerHTML = keys.map((key, index) =>
       '<div style="background:rgba(10,13,20,.9);border:1px solid var(--card-border);padding:12px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
         '<div style="min-width:0;"><div class="code-text" style="color:var(--accent-glow);"><span style="color:var(--text-muted);font-size:.75rem;">#' + (index + 1) + '</span> ' + escapeHtml(key.code) + '</div>' +
-        '<div style="font-size:.7rem;color:var(--text-muted);">' + escapeHtml(key.durationLabel) + ' | 📱 Devices: ' + escapeHtml(key.devices) + ' <span style="color:var(--success-green);font-weight:700;">[READY]</span></div></div>' +
+        '<div style="font-size:.7rem;color:var(--text-muted);">' + escapeHtml(key.durationLabel) + ' | 📱 Devices: ' + escapeHtml(key.devices) + ' <span style="color:' + (key.isActive === false || new Date(key.expiresAt).getTime() <= Date.now() ? 'var(--danger-red)' : 'var(--success-green)') + ';font-weight:700;">[' + (key.isActive === false ? 'STOPPED' : new Date(key.expiresAt).getTime() <= Date.now() ? 'EXPIRED' : 'ACTIVE') + ']</span></div></div>' +
         '<div style="display:flex;gap:6px;align-items:center;"><button class="btn-share-vibrant" data-act="share" data-k="' + escapeHtml(key.code) + '" data-d="' + escapeHtml(key.durationLabel) + '" data-v="' + escapeHtml(key.devices) + '">📲 SHARE</button>' +
         '<button class="btn-trash" data-act="delkey" data-id="' + escapeHtml(key.id) + '">🗑</button></div></div>'
     ).join("");
