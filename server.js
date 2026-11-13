@@ -322,9 +322,10 @@ app.get("/api/admin/keys", requireAuth("admin"), async (_req, res) => {
   const store = await readStore();
   const keys = store.keys.slice().sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))).map(key => {
     const reseller = store.resellers.find(item => item.id === key.resellerId);
-    const usedDevices = store.activations.filter(item => item.keyId === key.id).length;
+    const activations = store.activations.filter(item => item.keyId === key.id);
+    const usedDevices = activations.length;
     const expired = !key.expiresAt || new Date(key.expiresAt).getTime() <= Date.now();
-    return { ...key, resellerLabel: reseller ? reseller.label : "الإدارة", usedDevices, expired, isActive: key.isActive !== false };
+    return { ...key, resellerLabel: reseller ? reseller.label : "الإدارة", usedDevices, activations: activations.map(item => ({ model: item.deviceModel || "الموديل غير متاح", platform: item.devicePlatform || "", activatedAt: item.activatedAt })), expired, isActive: key.isActive !== false };
   });
   res.json({ keys });
 });
@@ -416,7 +417,10 @@ app.get("/api/reseller/me", requireAuth("reseller"), async (req, res) => {
 
 app.get("/api/reseller/keys", requireAuth("reseller"), async (req, res) => {
   const store = await readStore();
-  const keys = store.keys.filter(key => key.resellerId === req.reseller.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(key => ({ ...key, usedDevices: store.activations.filter(item => item.keyId === key.id).length, isActive: key.isActive !== false }));
+  const keys = store.keys.filter(key => key.resellerId === req.reseller.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(key => {
+    const activations = store.activations.filter(item => item.keyId === key.id);
+    return { ...key, usedDevices: activations.length, activations: activations.map(item => ({ model: item.deviceModel || "الموديل غير متاح", platform: item.devicePlatform || "", activatedAt: item.activatedAt })), isActive: key.isActive !== false };
+  });
   res.json({ keys });
 });
 
@@ -500,6 +504,10 @@ app.post("/api/check", verifyLimiter, async (req, res) => {
 app.post("/api/verify", verifyLimiter, async (req, res) => {
   const code = normalizeLicenseCode(req.body?.code);
   const deviceId = String(req.body?.device_id || "").trim();
+  const rawModel = String(req.body?.device_model || "").trim();
+  const rawPlatform = String(req.body?.device_platform || "").trim();
+  const deviceModel = rawModel.replace(/[<>\u0000-\u001f]/g, "").slice(0, 80) || "الموديل غير متاح";
+  const devicePlatform = rawPlatform.replace(/[<>\u0000-\u001f]/g, "").slice(0, 40);
   if (!isSupportedLicenseCode(code)) return res.json({ valid: false, reason: "invalid_format" });
   if (deviceId.length < 8 || deviceId.length > 200) return res.json({ valid: false, reason: "missing_params" });
   const result = await mutateStore(store => {
@@ -509,10 +517,14 @@ app.post("/api/verify", verifyLimiter, async (req, res) => {
     if (key.isActive === false) return { valid: false, reason: "code_disabled" };
     if (!key.expiresAt || new Date(key.expiresAt).getTime() <= Date.now()) return { valid: false, reason: "code_expired" };
     const existing = store.activations.find(item => item.keyId === key.id && item.deviceId === deviceId);
-    if (existing) return { valid: true, expires_at: key.expiresAt, max_devices: key.devices };
+    if (existing) {
+      if (deviceModel !== "الموديل غير متاح") existing.deviceModel = deviceModel;
+      if (devicePlatform) existing.devicePlatform = devicePlatform;
+      return { valid: true, expires_at: key.expiresAt, max_devices: key.devices };
+    }
     const used = store.activations.filter(item => item.keyId === key.id).length;
     if (used >= Number(key.devices || 1)) return { valid: false, reason: "max_devices_reached" };
-    store.activations.push({ id: newId(), keyId: key.id, deviceId, activatedAt: new Date().toISOString() });
+    store.activations.push({ id: newId(), keyId: key.id, deviceId, deviceModel, devicePlatform, activatedAt: new Date().toISOString() });
     return { valid: true, expires_at: key.expiresAt, max_devices: key.devices };
   });
   return res.json(result);
