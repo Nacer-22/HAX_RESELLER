@@ -65,7 +65,8 @@ const durations = {
   "2592000000": { label: "30 يوماً", price: 10 }
 };
 
-const emptyStore = () => ({ resellers: [], keys: [], activations: [], createdAt: new Date().toISOString() });
+const defaultSettings = () => ({ basePrice: 1, maintenance: { client: false, reseller: false }, adminPasswordHash: "", adminSessionVersion: 0, adminPasswordChangedAt: null });
+const emptyStore = () => ({ resellers: [], keys: [], activations: [], settings: defaultSettings(), createdAt: new Date().toISOString() });
 let queue = Promise.resolve();
 
 async function readStore() {
@@ -76,6 +77,19 @@ async function readStore() {
       resellers: Array.isArray(parsed.resellers) ? parsed.resellers : [],
       keys: Array.isArray(parsed.keys) ? parsed.keys : [],
       activations: Array.isArray(parsed.activations) ? parsed.activations : [],
+      settings: (() => {
+        const saved = parsed.settings && typeof parsed.settings === "object" ? parsed.settings : {};
+        const maintenance = saved.maintenance && typeof saved.maintenance === "object" ? saved.maintenance : {};
+        const basePrice = Number(saved.basePrice);
+        const sessionVersion = Number(saved.adminSessionVersion);
+        return {
+          basePrice: Number.isFinite(basePrice) && basePrice >= 0 ? basePrice : 1,
+          maintenance: { client: maintenance.client === true, reseller: maintenance.reseller === true },
+          adminPasswordHash: typeof saved.adminPasswordHash === "string" ? saved.adminPasswordHash : "",
+          adminSessionVersion: Number.isSafeInteger(sessionVersion) && sessionVersion >= 0 ? sessionVersion : 0,
+          adminPasswordChangedAt: saved.adminPasswordChangedAt || null
+        };
+      })(),
       createdAt: parsed.createdAt || new Date().toISOString()
     };
   } catch (error) {
@@ -110,8 +124,8 @@ const normalizeLicenseCode = value => String(value || "").normalize("NFKC").repl
 const isSupportedLicenseCode = value => /^NACER[A-F0-9]{12}$/.test(value) || /^HAXK[A-F0-9]{18}$/.test(value);
 const cleanLabel = value => String(value || "").trim().replace(/[<>]/g, "").slice(0, 60);
 
-function issueToken(subject, role) {
-  return jwt.sign({ sub: subject, role }, JWT_SECRET, { expiresIn: "8h", issuer: "hax-reseller" });
+function issueToken(subject, role, sessionVersion = 0) {
+  return jwt.sign({ sub: subject, role, ...(role === "admin" ? { sessionVersion } : {}) }, JWT_SECRET, { expiresIn: "8h", issuer: "hax-reseller" });
 }
 
 function requireAuth(role) {
@@ -127,6 +141,11 @@ function requireAuth(role) {
         const reseller = store.resellers.find(item => item.id === payload.sub);
         if (!reseller) return res.status(401).json({ error: "حساب الموزع غير موجود أو تم حذفه." });
         req.reseller = reseller;
+      } else if (role === "admin") {
+        const store = await readStore();
+        if (Number(payload.sessionVersion || 0) !== Number(store.settings.adminSessionVersion || 0)) {
+          return res.status(401).json({ error: "تم إبطال هذه الجلسة. سجّل الدخول مجدداً." });
+        }
       }
       req.auth = payload;
       next();
@@ -150,19 +169,21 @@ function publicReseller(store, reseller) {
 app.get("/health", (_req, res) => res.json({ ok: true, service: "HAX_RESELLER" }));
 
 app.post("/api/auth/admin/login", authLimiter, async (req, res) => {
-  const username = String(req.body?.username || "");
+  const username = String(req.body?.username || ADMIN_USERNAME);
   const password = String(req.body?.password || "");
-  const expectedHash = await ADMIN_PASSWORD_HASH;
+  const store = await readStore();
+  const expectedHash = store.settings.adminPasswordHash || await ADMIN_PASSWORD_HASH;
   const validUser = username === ADMIN_USERNAME;
   const validPass = await bcrypt.compare(password, expectedHash);
   if (!validUser || !validPass) return res.status(401).json({ error: "بيانات الدخول غير صحيحة." });
-  return res.json({ token: issueToken("admin", "admin"), role: "admin", expiresIn: 28800 });
+  return res.json({ token: issueToken("admin", "admin", store.settings.adminSessionVersion || 0), role: "admin", expiresIn: 28800 });
 });
 
 app.post("/api/auth/reseller/login", authLimiter, async (req, res) => {
   const code = String(req.body?.code || "").trim().toUpperCase();
   if (code.length < 12 || code.length > 80) return res.status(401).json({ error: "رمز الموزع غير صحيح." });
   const store = await readStore();
+  if (store.settings.maintenance.reseller) return res.status(503).json({ error: "لوحة الموزعين تحت الصيانة حالياً." });
   const reseller = store.resellers.find(item => item.codeHash === sha256(code));
   if (!reseller) return res.status(401).json({ error: "رمز الموزع غير صحيح." });
   return res.json({ token: issueToken(reseller.id, "reseller"), role: "reseller", expiresIn: 28800 });
@@ -178,6 +199,64 @@ app.get("/api/admin/overview", requireAuth("admin"), async (_req, res) => {
   });
 });
 
+const isStrongAdminPassword = password =>
+  typeof password === "string" && password.length >= 14 && password.length <= 128 &&
+  /[a-z]/.test(password) && /[A-Z]/.test(password) && /[0-9]/.test(password) &&
+  /[^A-Za-z0-9]/.test(password);
+
+app.get("/api/admin/settings", requireAuth("admin"), async (_req, res) => {
+  const store = await readStore();
+  res.json({ basePrice: store.settings.basePrice, maintenance: store.settings.maintenance,
+    adminPasswordChangedAt: store.settings.adminPasswordChangedAt });
+});
+
+app.patch("/api/admin/settings", requireAuth("admin"), async (req, res) => {
+  const price = Number(req.body?.price);
+  if (!Number.isFinite(price) || price < 0 || price > 1000000)
+    return res.status(400).json({ error: "السعر يجب أن يكون رقماً صالحاً بين 0 و1000000." });
+  await mutateStore(store => { store.settings.basePrice = Number(price.toFixed(2)); });
+  res.json({ ok: true, basePrice: Number(price.toFixed(2)) });
+});
+
+app.patch("/api/admin/settings/maintenance", requireAuth("admin"), async (req, res) => {
+  const { client, reseller } = req.body || {};
+  if ((client !== undefined && typeof client !== "boolean") ||
+      (reseller !== undefined && typeof reseller !== "boolean") ||
+      (client === undefined && reseller === undefined))
+    return res.status(400).json({ error: "حالة الصيانة غير صالحة." });
+  const maintenance = await mutateStore(store => {
+    if (client !== undefined) store.settings.maintenance.client = client;
+    if (reseller !== undefined) store.settings.maintenance.reseller = reseller;
+    return store.settings.maintenance;
+  });
+  res.json({ ok: true, maintenance });
+});
+
+app.get("/api/public/maintenance", async (_req, res) => {
+  const store = await readStore();
+  res.json({ maintenance: store.settings.maintenance });
+});
+
+app.post("/api/admin/settings/password", requireAuth("admin"), async (req, res) => {
+  const currentPassword = String(req.body?.currentPassword || "");
+  const newPassword = String(req.body?.newPassword || "");
+  if (!isStrongAdminPassword(newPassword))
+    return res.status(400).json({ error: "كلمة المرور الجديدة تحتاج 14 حرفاً على الأقل، وأحرفاً كبيرة وصغيرة ورقماً ورمزاً." });
+  if (currentPassword === newPassword)
+    return res.status(400).json({ error: "اختر كلمة مرور مختلفة عن الحالية." });
+  const newHash = await bcrypt.hash(newPassword, 12);
+  const result = await mutateStore(async store => {
+    const currentHash = store.settings.adminPasswordHash || await ADMIN_PASSWORD_HASH;
+    if (!await bcrypt.compare(currentPassword, currentHash)) return { error: "كلمة المرور الحالية غير صحيحة." };
+    store.settings.adminPasswordHash = newHash;
+    store.settings.adminSessionVersion = Number(store.settings.adminSessionVersion || 0) + 1;
+    store.settings.adminPasswordChangedAt = new Date().toISOString();
+    return { lastChangedAt: store.settings.adminPasswordChangedAt };
+  });
+  if (result.error) return res.status(401).json({ error: result.error });
+  res.json({ ok: true, lastChangedAt: result.lastChangedAt, message: "تم تغيير كلمة المرور وإبطال الجلسات السابقة." });
+});
+
 app.get("/api/admin/resellers", requireAuth("admin"), async (_req, res) => {
   const store = await readStore();
   res.json({ resellers: store.resellers.map(item => publicReseller(store, item)) });
@@ -188,15 +267,22 @@ app.post("/api/admin/resellers", requireAuth("admin"), async (req, res) => {
   const balance = Number(req.body?.balance ?? 0);
   if (!label) return res.status(400).json({ error: "أدخل اسم الموزع." });
   if (!Number.isFinite(balance) || balance < 0 || balance > 1000000) return res.status(400).json({ error: "قيمة الرصيد غير صالحة." });
-  const code = newCode("HAX-R");
+  const requestedCode = String(req.body?.code || "").trim();
+  const code = requestedCode || newCode("HAX-R");
+  if (code.length < 8 || code.length > 80 || !/^[A-Za-z0-9_-]+$/.test(code)) {
+    return res.status(400).json({ error: "رمز الموزع يجب أن يكون من 8 إلى 80 حرفاً أو رقماً." });
+  }
+  const codeHash = sha256(code.toUpperCase());
   const reseller = {
-    id: newId(), label, codeHash: sha256(code),
-    displayCode: code.slice(0, 10) + "••••••",
+    id: newId(), label: label || code, codeHash,
+    displayCode: code.length > 12 ? code.slice(0, 8) + "••••" : code,
     balance: Number(balance.toFixed(2)),
     createdAt: new Date().toISOString()
   };
+  const duplicate = (await readStore()).resellers.some(item => item.codeHash === codeHash);
+  if (duplicate) return res.status(409).json({ error: "رمز الموزع مستخدم مسبقاً." });
   await mutateStore(store => { store.resellers.push(reseller); });
-  res.status(201).json({ reseller: { id: reseller.id, label, displayCode: reseller.displayCode, balance: reseller.balance }, accessCode: code });
+  res.status(201).json({ reseller: { id: reseller.id, label: reseller.label, displayCode: reseller.displayCode, balance: reseller.balance }, accessCode: code });
 });
 
 app.patch("/api/admin/resellers/:id/balance", requireAuth("admin"), async (req, res) => {
@@ -343,7 +429,8 @@ app.post("/api/reseller/keys", requireAuth("reseller"), async (req, res) => {
   const result = await mutateStore(store => {
     const reseller = store.resellers.find(item => item.id === req.reseller.id);
     if (!reseller) return { error: "الحساب غير موجود.", status: 404 };
-    const total = Number((durations[durationMs].price * quantity).toFixed(2));
+    const unitPrice = Number(store.settings.basePrice ?? 1);
+    const total = Number((unitPrice * quantity).toFixed(2));
     if (reseller.balance < total) return { error: "رصيدك غير كافٍ لإنشاء هذه المفاتيح.", status: 409 };
     const now = Date.now();
     const created = Array.from({ length: quantity }, () => {
@@ -401,6 +488,7 @@ app.post("/api/check", verifyLimiter, async (req, res) => {
   const code = normalizeLicenseCode(req.body?.code);
   if (!isSupportedLicenseCode(code)) return res.json({ valid: false, reason: "invalid_format" });
   const store = await readStore();
+  if (store.settings.maintenance.client) return res.json({ valid: false, reason: "maintenance" });
   const key = store.keys.find(item => normalizeLicenseCode(item.code) === code);
   if (!key) return res.json({ valid: false, reason: "code_not_found" });
   if (key.isActive === false) return res.json({ valid: false, reason: "code_disabled" });
@@ -414,6 +502,7 @@ app.post("/api/verify", verifyLimiter, async (req, res) => {
   if (!isSupportedLicenseCode(code)) return res.json({ valid: false, reason: "invalid_format" });
   if (deviceId.length < 8 || deviceId.length > 200) return res.json({ valid: false, reason: "missing_params" });
   const result = await mutateStore(store => {
+    if (store.settings.maintenance.client) return { valid: false, reason: "maintenance" };
     const key = store.keys.find(item => normalizeLicenseCode(item.code) === code);
     if (!key) return { valid: false, reason: "code_not_found" };
     if (key.isActive === false) return { valid: false, reason: "code_disabled" };
