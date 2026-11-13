@@ -228,13 +228,15 @@
       const expired = key.expired === true;
       const status = !enabled ? "موقوف" : expired ? "منتهي" : "فعال";
       const statusColor = !enabled || expired ? "var(--danger-red)" : "var(--success-green)";
-      const expires = key.expiresAt && Number.isFinite(Date.parse(key.expiresAt))
-        ? new Date(key.expiresAt).toLocaleString("ar") : "—";
+      const expiryValue = key.expiresAt && Number.isFinite(Date.parse(key.expiresAt))
+        ? (() => { const d = new Date(key.expiresAt); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); })() : "";
       return '<tr>' +
         '<td class="code-text">' + escapeHtml(key.code) + '</td>' +
         '<td>' + escapeHtml(key.resellerLabel || "الإدارة") + '</td>' +
-        '<td>' + escapeHtml(expires) + '</td>' +
-        '<td>' + Number(key.devices || 1) + '</td>' +
+        '<td><input type="datetime-local" data-expiry-for="' + escapeHtml(key.id) + '" value="' + escapeHtml(expiryValue) + '" style="max-width:190px;background:#030407;color:#fff;border:1px solid var(--card-border);padding:6px;border-radius:7px;"><button class="btn-trash" data-act="keyexpiry" data-id="' + escapeHtml(key.id) + '">حفظ</button></td>' +
+        '<td><select data-devices-for="' + escapeHtml(key.id) + '" style="max-width:72px;background:#030407;color:#fff;border:1px solid var(--card-border);padding:6px;border-radius:7px;">' +
+          [1,2,3,5].map(n => '<option value="' + n + '"' + (Number(key.devices || 1) === n ? " selected" : "") + '>' + n + '</option>').join("") +
+        '</select><button class="btn-trash" data-act="keydevices" data-id="' + escapeHtml(key.id) + '">حفظ</button></td>' +
         '<td>' + Number(key.usedDevices || 0) + '</td>' +
         '<td style="color:' + statusColor + ';font-weight:800;">' + status + '</td>' +
         '<td style="white-space:nowrap;">' +
@@ -290,6 +292,30 @@
       const result = await api("/api/admin/keys/" + encodeURIComponent(id) + "/reset", { method: "POST" });
       await loadAdminDashboard();
       showMsg("✅ تمت إعادة ضبط " + result.resetDevices + " جهاز.", "var(--success-green)");
+    } catch (error) { showMsg("❌ " + error.message, "var(--danger-red)"); }
+  }
+
+  async function saveAdminKeyExpiry(id) {
+    const input = document.querySelector('[data-expiry-for="' + id + '"]');
+    if (!input || !input.value) return showMsg("اختر تاريخ الانتهاء أولاً.", "var(--danger-red)");
+    try {
+      await api("/api/admin/keys/" + encodeURIComponent(id), {
+        method: "PATCH", body: JSON.stringify({ expiresAt: new Date(input.value).toISOString() })
+      });
+      await loadAdminDashboard();
+      showMsg("✅ تم تحديث تاريخ الانتهاء.", "var(--success-green)");
+    } catch (error) { showMsg("❌ " + error.message, "var(--danger-red)"); }
+  }
+
+  async function saveAdminKeyDevices(id) {
+    const input = document.querySelector('[data-devices-for="' + id + '"]');
+    if (!input) return;
+    try {
+      await api("/api/admin/keys/" + encodeURIComponent(id), {
+        method: "PATCH", body: JSON.stringify({ devices: Number(input.value) })
+      });
+      await loadAdminDashboard();
+      showMsg("✅ تم تحديث عدد الأجهزة.", "var(--success-green)");
     } catch (error) { showMsg("❌ " + error.message, "var(--danger-red)"); }
   }
 
@@ -405,6 +431,8 @@
     if (button.dataset.act === "keytoggle") toggleAdminKey(button.dataset.id, button.dataset.active === "true");
     if (button.dataset.act === "keyreset") resetAdminKeyDevices(button.dataset.id);
     if (button.dataset.act === "keydelete") deleteAdminKey(button.dataset.id);
+    if (button.dataset.act === "keyexpiry") saveAdminKeyExpiry(button.dataset.id);
+    if (button.dataset.act === "keydevices") saveAdminKeyDevices(button.dataset.id);
     if (button.dataset.act === "copyone") copyText(button.dataset.code || "");
   });
 
