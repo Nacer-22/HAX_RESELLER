@@ -96,7 +96,7 @@
       const status = active ? "ACTIVE" : (k.isActive === false ? "STOPPED" : "EXPIRED");
       return '<div style="background:rgba(10,13,20,.9);border:1px solid var(--card-border);padding:12px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
        '<div style="min-width:0"><div class="code-text">#' + (i + 1) + ' ' + safe(k.code) + '</div><div style="font-size:.7rem;color:var(--text-muted)">' + safe(k.durationLabel) + ' | Devices: ' + safe(k.devices) + ' | ' + status + '</div><div style="font-size:.72rem;color:#ff7180;margin-top:5px">الأجهزة المستخدمة: ' + (Array.isArray(k.activations) && k.activations.length ? k.activations.map(a => safe(a.model || "الموديل غير متاح")).join('، ') : 'لم يتم تفعيل المفتاح بعد') + '</div></div>' +
-       '<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn-share-vibrant" type="button" data-act="copykey" data-k="' + safe(k.code) + '">نسخ الكود</button><button class="btn-trash" data-act="delkey" data-k="' + safe(k.id) + '">حذف</button></div></div>';
+       '<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn-share-vibrant" type="button" data-act="copykey" data-k="' + safe(k.code) + '">نسخ الكود</button><button class="btn-share-vibrant" type="button" data-act="sharekey" data-k="' + safe(k.code) + '">مشاركة</button><button class="btn-trash" data-act="delkey" data-k="' + safe(k.id) + '">حذف</button></div></div>';
     }).join("") : '<div style="text-align:center;color:var(--text-muted)">لا توجد مفاتيح بعد.</div>';
   }
   async function generateKeys() {
@@ -113,7 +113,7 @@
       const keys = data.keys || [];
       $("newKeysCountNum").textContent = keys.length;
       $("newKeysListContent").innerHTML = keys.map((k, i) =>
-        '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:rgba(3,4,7,.9);padding:10px 14px;border-radius:10px;border:1px solid rgba(0,230,118,.3)"><span class="code-text">' + (i + 1) + ". " + safe(k.code) + '</span><button class="btn-share-vibrant" type="button" data-act="copykey" data-k="' + safe(k.code) + '">نسخ الكود</button></div>'
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:rgba(3,4,7,.9);padding:10px 14px;border-radius:10px;border:1px solid rgba(0,230,118,.3)"><span class="code-text">' + (i + 1) + ". " + safe(k.code) + '</span><button class="btn-share-vibrant" type="button" data-act="copykey" data-k="' + safe(k.code) + '">نسخ الكود</button><button class="btn-share-vibrant" type="button" data-act="sharekey" data-k="' + safe(k.code) + '">مشاركة</button></div>'
       ).join("");
       $("newKeysResultBox").classList.toggle("hidden", !keys.length);
       await loadResellerPanelData();
@@ -242,6 +242,28 @@
     const el = event.target.closest("[data-act]");
     if (!el) return;
     if (el.dataset.act === "copykey") copyText(el.dataset.k);
+    else if (el.dataset.act === "sharekey") {
+      const modal = $("shareKeyModal");
+      modal.dataset.key = el.dataset.k || "";
+      modal.classList.remove("hidden");
+    }
+    else if (el.dataset.act === "close-share") $("shareKeyModal").classList.add("hidden");
+    else if (el.dataset.act === "shareplatform") {
+      const modal = $("shareKeyModal");
+      const key = modal.dataset.key || "";
+      if (!key) { msg("لم يتم تحديد كود للمشاركة.", "var(--danger-red)"); return; }
+      const message = "الكود الخاص بك: " + key;
+      const platform = el.dataset.platform;
+      let url = "";
+      if (platform === "telegram") url = "https://t.me/share/url?url=&text=" + encodeURIComponent(message);
+      else if (platform === "whatsapp") url = "https://wa.me/?text=" + encodeURIComponent(message);
+      else if (platform === "instagram") url = "https://www.instagram.com/direct/inbox/";
+      else if (platform === "tiktok") url = "https://www.tiktok.com/messages";
+      if (!url) return;
+      window.open(url, "_blank", "noopener,noreferrer");
+      if (platform === "instagram" || platform === "tiktok") copyText(key);
+      modal.classList.add("hidden");
+    }
     else if (el.dataset.act === "copyall") {
       const codes = Array.from(document.querySelectorAll('#newKeysListContent [data-act="copykey"]'))
         .map(button => button.dataset.k).filter(Boolean);
