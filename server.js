@@ -503,18 +503,27 @@ app.post("/api/check", verifyLimiter, async (req, res) => {
 
 function inferDeviceFromUserAgent(userAgent) {
   const ua = String(userAgent || "");
-  const android = ua.match(/Android\s[\d.]+\s*;\s*([^;)]+)/i);
+  let browser = "متصفح غير معروف";
+  if (/EdgA?\//i.test(ua)) browser = "Edge";
+  else if (/SamsungBrowser\//i.test(ua)) browser = "Samsung Internet";
+  else if (/OPR\//i.test(ua)) browser = "Opera";
+  else if (/Firefox\//i.test(ua) || /FxiOS\//i.test(ua)) browser = "Firefox";
+  else if (/CriOS\//i.test(ua) || /Chrome\//i.test(ua)) browser = "Chrome";
+  else if (/Safari\//i.test(ua)) browser = "Safari";
+
+  const android = ua.match(/Android[^;)]*;\s*([^;)]+)/i);
   if (android) {
     const candidate = android[1].replace(/\s+Build\/.*/i, "").trim();
-    if (candidate && !/^(?:k|wv|mobile|linux|unknown)$/i.test(candidate)) return candidate.slice(0, 80);
+    if (candidate && !/^(?:k|wv|mobile|linux|armv\d+|unknown)$/i.test(candidate)) return candidate.slice(0, 80);
+    return ("Android phone · " + browser).slice(0, 80);
   }
-  if (/iPhone/i.test(ua)) return "iPhone (الموديل الدقيق مخفي من المتصفح)";
-  if (/iPad/i.test(ua)) return "iPad (الموديل الدقيق مخفي من المتصفح)";
-  if (/Windows NT/i.test(ua)) return "كمبيوتر Windows (الموديل غير متاح من المتصفح)";
-  if (/Macintosh|Mac OS X/i.test(ua)) return "Mac (الموديل غير متاح من المتصفح)";
-  if (/CrOS/i.test(ua)) return "Chromebook";
-  if (/Linux/i.test(ua)) return "كمبيوتر Linux (الموديل غير متاح من المتصفح)";
-  return "الموديل غير متاح من المتصفح";
+  if (/iPhone/i.test(ua)) return "iPhone · " + browser;
+  if (/iPad/i.test(ua)) return "iPad · " + browser;
+  if (/Windows NT/i.test(ua)) return "Windows PC · " + browser;
+  if (/Macintosh|Mac OS X/i.test(ua)) return "Mac · " + browser;
+  if (/CrOS/i.test(ua)) return "Chromebook · " + browser;
+  if (/Linux/i.test(ua)) return "Linux device · " + browser;
+  return ("جهاز غير محدد · " + browser).slice(0, 80);
 }
 
 app.post("/api/verify", verifyLimiter, async (req, res) => {
