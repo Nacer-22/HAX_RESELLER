@@ -7,6 +7,8 @@
   let activeResellerCode = "";
   let messageTimer = null;
   let busy = false;
+  let currentResellers = [];
+  let adminCreatedCodes = [];
 
   async function api(path, options = {}) {
     if (!apiBase && location.hostname.endsWith("github.io")) {
@@ -197,10 +199,11 @@
 
   async function loadAdminDashboard() {
     const values = await Promise.all([
-      api("/api/admin/overview"), api("/api/admin/resellers")
+      api("/api/admin/overview"), api("/api/admin/resellers"), api("/api/admin/keys")
     ]);
     const overview = values[0];
     currentResellers = Array.isArray(values[1].resellers) ? values[1].resellers : [];
+    const allKeys = Array.isArray(values[2].keys) ? values[2].keys : [];
     $("statResellers").textContent = overview.resellers;
     $("statKeys").textContent = overview.keys;
     $("statBalance").textContent = Number(overview.balance).toFixed(2);
@@ -212,11 +215,91 @@
       '<td class="code-text">' + escapeHtml(item.label) + '<br><small>' + escapeHtml(item.displayCode) + '</small></td>' +
       '<td class="val-green">' + Number(item.balance).toFixed(2) + '</td><td class="val-num">' + Number(item.keysCount || 0) + '</td>' +
       '<td style="text-align:center"><button class="btn-trash" data-act="delres" data-id="' + escapeHtml(item.id) + '">🗑</button></td></tr>'
-    ).join("") : '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);">No resellers yet.</td></tr>';
-    $("chargeSelectReseller").innerHTML = '<option value="">Select Reseller</option>' + currentResellers.map(item =>
+    ).join("") : '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);">لا يوجد موزعون بعد.</td></tr>';
+    $("chargeSelectReseller").innerHTML = '<option value="">اختر الموزع</option>' + currentResellers.map(item =>
       '<option value="' + escapeHtml(item.id) + '">' + escapeHtml(item.label) + ' · ' + Number(item.balance).toFixed(2) + '</option>'
     ).join("");
     $("selectAllCb").checked = false;
+
+    const keysBody = $("adminKeysTableBody");
+    if (!keysBody) return;
+    keysBody.innerHTML = allKeys.length ? allKeys.map(key => {
+      const enabled = key.isActive !== false;
+      const expired = key.expired === true;
+      const status = !enabled ? "موقوف" : expired ? "منتهي" : "فعال";
+      const statusColor = !enabled || expired ? "var(--danger-red)" : "var(--success-green)";
+      const expires = key.expiresAt && Number.isFinite(Date.parse(key.expiresAt))
+        ? new Date(key.expiresAt).toLocaleString("ar") : "—";
+      return '<tr>' +
+        '<td class="code-text">' + escapeHtml(key.code) + '</td>' +
+        '<td>' + escapeHtml(key.resellerLabel || "الإدارة") + '</td>' +
+        '<td>' + escapeHtml(expires) + '</td>' +
+        '<td>' + Number(key.devices || 1) + '</td>' +
+        '<td>' + Number(key.usedDevices || 0) + '</td>' +
+        '<td style="color:' + statusColor + ';font-weight:800;">' + status + '</td>' +
+        '<td style="white-space:nowrap;">' +
+          '<button class="btn-trash" data-act="keytoggle" data-id="' + escapeHtml(key.id) + '" data-active="' + (!enabled ? "true" : "false") + '">' + (enabled ? "إيقاف" : "تفعيل") + '</button> ' +
+          '<button class="btn-trash" data-act="keyreset" data-id="' + escapeHtml(key.id) + '" title="إعادة ضبط الأجهزة">↻</button> ' +
+          '<button class="btn-trash" data-act="keydelete" data-id="' + escapeHtml(key.id) + '" title="حذف المفتاح">🗑</button>' +
+        '</td></tr>';
+    }).join("") : '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);">لا توجد مفاتيح في النظام.</td></tr>';
+  }
+
+  async function adminGenerateKeys() {
+    const durationMs = Number($("adminKeyDuration").value);
+    const devices = Number($("adminKeyDevices").value);
+    const quantity = Number.parseInt($("adminKeyQuantity").value, 10);
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 50) {
+      return showMsg("⚠ الكمية يجب أن تكون بين 1 و50.", "var(--danger-red)");
+    }
+    try {
+      const result = await api("/api/admin/keys", {
+        method: "POST", body: JSON.stringify({ durationMs, devices, quantity })
+      });
+      adminCreatedCodes = (result.keys || []).map(key => key.code);
+      $("adminCreatedKeysList").innerHTML = adminCreatedCodes.map((code, index) =>
+        '<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;">' +
+        '<code style="color:#fff;direction:ltr;user-select:all;">' + escapeHtml(code) + '</code>' +
+        '<button class="btn-share-vibrant" data-act="copyone" data-code="' + escapeHtml(code) + '">نسخ</button></div>'
+      ).join("");
+      $("adminCreatedKeys").classList.remove("hidden");
+      await loadAdminDashboard();
+      showMsg("✅ تم إنشاء " + adminCreatedCodes.length + " مفتاح بنجاح.", "var(--success-green)");
+    } catch (error) {
+      showMsg("❌ " + error.message, "var(--danger-red)");
+    }
+  }
+
+  function copyAdminCreatedKeys() {
+    if (adminCreatedCodes.length) copyText(adminCreatedCodes.join("\n"));
+  }
+
+  async function toggleAdminKey(id, active) {
+    try {
+      await api("/api/admin/keys/" + encodeURIComponent(id), {
+        method: "PATCH", body: JSON.stringify({ isActive: active })
+      });
+      await loadAdminDashboard();
+      showMsg(active ? "✅ تم تفعيل المفتاح." : "تم إيقاف المفتاح.", active ? "var(--success-green)" : "var(--accent-glow)");
+    } catch (error) { showMsg("❌ " + error.message, "var(--danger-red)"); }
+  }
+
+  async function resetAdminKeyDevices(id) {
+    if (!confirm("إعادة ضبط الأجهزة المرتبطة بهذا المفتاح؟")) return;
+    try {
+      const result = await api("/api/admin/keys/" + encodeURIComponent(id) + "/reset", { method: "POST" });
+      await loadAdminDashboard();
+      showMsg("✅ تمت إعادة ضبط " + result.resetDevices + " جهاز.", "var(--success-green)");
+    } catch (error) { showMsg("❌ " + error.message, "var(--danger-red)"); }
+  }
+
+  async function deleteAdminKey(id) {
+    if (!confirm("حذف هذا المفتاح نهائياً؟")) return;
+    try {
+      await api("/api/admin/keys/" + encodeURIComponent(id), { method: "DELETE" });
+      await loadAdminDashboard();
+      showMsg("✅ تم حذف المفتاح.", "var(--success-green)");
+    } catch (error) { showMsg("❌ " + error.message, "var(--danger-red)"); }
   }
 
   async function addNewReseller() {
@@ -319,6 +402,10 @@
     if (button.dataset.act === "share") shareKey(button.dataset.k, button.dataset.d, button.dataset.v);
     if (button.dataset.act === "delkey") deleteResellerKey(button.dataset.id);
     if (button.dataset.act === "delres") deleteReseller(button.dataset.id);
+    if (button.dataset.act === "keytoggle") toggleAdminKey(button.dataset.id, button.dataset.active === "true");
+    if (button.dataset.act === "keyreset") resetAdminKeyDevices(button.dataset.id);
+    if (button.dataset.act === "keydelete") deleteAdminKey(button.dataset.id);
+    if (button.dataset.act === "copyone") copyText(button.dataset.code || "");
   });
 
   window.toggleAccordion = toggleAccordion;
@@ -334,4 +421,7 @@
   window.chargeResellerBalance = chargeResellerBalance;
   window.toggleSelectAll = toggleSelectAll;
   window.deleteSelectedResellers = deleteSelectedResellers;
+  window.loadAdminDashboard = loadAdminDashboard;
+  window.adminGenerateKeys = adminGenerateKeys;
+  window.copyAdminCreatedKeys = copyAdminCreatedKeys;
 })();
