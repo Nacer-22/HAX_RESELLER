@@ -138,6 +138,7 @@ function requireAuth(role) {
       if (payload.role !== role) return res.status(403).json({ error: "ليس لديك صلاحية لهذا الإجراء." });
       if (role === "reseller") {
         const store = await readStore();
+        if (store.settings.maintenance.reseller) return res.status(503).json({ error: "لوحة الموزعين تحت الصيانة حالياً." });
         const reseller = store.resellers.find(item => item.id === payload.sub);
         if (!reseller) return res.status(401).json({ error: "حساب الموزع غير موجود أو تم حذفه." });
         req.reseller = reseller;
@@ -181,7 +182,7 @@ app.post("/api/auth/admin/login", authLimiter, async (req, res) => {
 
 app.post("/api/auth/reseller/login", authLimiter, async (req, res) => {
   const code = String(req.body?.code || "").trim().toUpperCase();
-  if (code.length < 12 || code.length > 80) return res.status(401).json({ error: "رمز الموزع غير صحيح." });
+  if (code.length < 8 || code.length > 80) return res.status(401).json({ error: "رمز الموزع غير صحيح." });
   const store = await readStore();
   if (store.settings.maintenance.reseller) return res.status(503).json({ error: "لوحة الموزعين تحت الصيانة حالياً." });
   const reseller = store.resellers.find(item => item.codeHash === sha256(code));
