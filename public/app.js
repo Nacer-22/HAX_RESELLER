@@ -16,6 +16,22 @@
     if (!response.ok) throw new Error(data.error || "Request failed (" + response.status + ")");
     return data;
   }
+
+  async function refreshResellerMaintenance() {
+    try {
+      const response = await fetch(apiBase + "/api/public/maintenance", { cache: "no-store" });
+      if (!response.ok) return;
+      const data = await response.json();
+      const active = !!(data.maintenance && data.maintenance.reseller);
+      const screen = $("haxResellerMaintenance");
+      const app = $("appRoot");
+      if (screen) screen.style.display = active ? "flex" : "none";
+      if (app) app.style.display = active ? "none" : "";
+    } catch (_) {
+      // Fail open if the public maintenance status cannot be reached.
+    }
+  }
+
   function safe(value) {
     return String(value == null ? "" : value).replace(/[&<>"']/g, ch => ({
       "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
@@ -276,6 +292,8 @@
   });
   $("resellerInputCode").addEventListener("keydown", e => { if (e.key === "Enter") loginAsReseller(); });
   $("adminInputPass").addEventListener("keydown", e => { if (e.key === "Enter") loginAsAdmin(); });
+  refreshResellerMaintenance();
+  setInterval(refreshResellerMaintenance, 12000);
 
   window.toggleAccordion = toggleAccordion;
   window.showAdminLogin = showAdminLogin;
