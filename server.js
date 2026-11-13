@@ -13,6 +13,7 @@ const path = require("path");
 
 const app = express();
 app.disable("x-powered-by");
+app.set("trust proxy", 1);
 
 const PORT = Number(process.env.PORT || 3000);
 const JWT_SECRET = process.env.JWT_SECRET || "";
@@ -33,17 +34,36 @@ if (!ADMIN_USERNAME || ADMIN_PASSWORD.length < 14) {
 }
 
 app.use(helmet());
-if (allowedOrigins.length) {
-  app.use(cors({
-    origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error("Origin is not allowed by CORS."));
-    },
-    methods: ["GET", "POST", "PATCH", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"]
-  }));
+if (!allowedOrigins.length) {
+  console.error("ALLOWED_ORIGINS must contain the exact trusted front-end origins.");
+  process.exit(1);
 }
-app.use(express.json({ limit: "20kb" }));
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error("Origin is not allowed by CORS."));
+  },
+  methods: ["GET", "POST", "PATCH", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  maxAge: 600,
+  optionsSuccessStatus: 204
+}));
+app.use(express.json({ limit: "20kb", strict: true }));
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 300,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  skip: req => req.path === "/health",
+  message: { error: "طلبات كثيرة من هذا الاتصال. حاول بعد قليل." }
+});
+app.use("/api", apiLimiter);
+app.use("/api", (_req, res, next) => {
+  res.setHeader("Cache-Control", "no-store, max-age=0");
+  res.setHeader("Pragma", "no-cache");
+  next();
+});
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -125,7 +145,7 @@ const isSupportedLicenseCode = value => /^NACER[A-F0-9]{12}$/.test(value) || /^H
 const cleanLabel = value => String(value || "").trim().replace(/[<>]/g, "").slice(0, 60);
 
 function issueToken(subject, role, sessionVersion = 0) {
-  return jwt.sign({ sub: subject, role, ...(role === "admin" ? { sessionVersion } : {}) }, JWT_SECRET, { expiresIn: "8h", issuer: "hax-reseller" });
+  return jwt.sign({ sub: subject, role, ...(role === "admin" ? { sessionVersion } : {}) }, JWT_SECRET, { algorithm: "HS256", expiresIn: "8h", issuer: "hax-reseller" });
 }
 
 function requireAuth(role) {
@@ -134,7 +154,7 @@ function requireAuth(role) {
       const header = req.headers.authorization || "";
       const token = header.startsWith("Bearer ") ? header.slice(7) : "";
       if (!token) return res.status(401).json({ error: "يلزم تسجيل الدخول." });
-      const payload = jwt.verify(token, JWT_SECRET, { issuer: "hax-reseller" });
+      const payload = jwt.verify(token, JWT_SECRET, { issuer: "hax-reseller", algorithms: ["HS256"] });
       if (payload.role !== role) return res.status(403).json({ error: "ليس لديك صلاحية لهذا الإجراء." });
       if (role === "reseller") {
         const store = await readStore();
@@ -562,9 +582,11 @@ app.post("/api/verify", verifyLimiter, async (req, res) => {
 
 app.use(express.static(PUBLIC_DIR, { extensions: ["html"] }));
 app.use((error, _req, res, _next) => {
-  console.error(error.message);
   if (res.headersSent) return;
+  if (error.type === "entity.parse.failed") return res.status(400).json({ error: "صيغة البيانات غير صالحة." });
+  if (error.type === "entity.too.large") return res.status(413).json({ error: "حجم الطلب أكبر من المسموح." });
   const status = error.message === "Origin is not allowed by CORS." ? 403 : 500;
+  if (status === 500) console.error("Unhandled request error:", error.message);
   res.status(status).json({ error: status === 403 ? "هذا النطاق غير مسموح." : "حدث خطأ داخلي." });
 });
 
