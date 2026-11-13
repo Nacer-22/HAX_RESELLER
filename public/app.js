@@ -226,6 +226,19 @@
     copyText("🔥 HAX_NON_ROOT 🔥\\n\\n🔑 Key: " + key + "\\n⏱ Duration: " + duration + "\\n📱 Allowed Devices: " + devices + "\\n🌐 Happ Subscription: " + HAPP);
   }
   document.addEventListener("click", event => {
+    const control = event.target.closest("[data-ui-click]");
+    if (!control) return;
+    const action = control.dataset.uiClick;
+    if (action === "toggleAccordion") toggleAccordion(control);
+    else if (action === "chargeAdd") chargeResellerBalance("add");
+    else if (action === "chargeDeduct") chargeResellerBalance("deduct");
+    else if (typeof window[action] === "function") window[action]();
+  });
+  document.addEventListener("change", event => {
+    const control = event.target.closest('[data-ui-change="toggleSelectAll"]');
+    if (control) toggleSelectAll(control);
+  });
+  document.addEventListener("click", event => {
     const el = event.target.closest("[data-act]");
     if (!el) return;
     if (el.dataset.act === "share") shareKey(el.dataset.k, el.dataset.d, el.dataset.v);
