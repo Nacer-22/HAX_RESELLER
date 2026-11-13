@@ -405,7 +405,7 @@ app.post("/api/check", verifyLimiter, async (req, res) => {
   if (!key) return res.json({ valid: false, reason: "code_not_found" });
   if (key.isActive === false) return res.json({ valid: false, reason: "code_disabled" });
   if (!key.expiresAt || new Date(key.expiresAt).getTime() <= Date.now()) return res.json({ valid: false, reason: "code_expired" });
-  return res.json({ valid: true, expires_at: key.expiresAt, max_devices: key.devices, code: key.code });
+  return res.json({ valid: true, expires_at: key.expiresAt, created_at: key.createdAt, max_devices: key.devices, code: key.code });
 });
 
 app.post("/api/verify", verifyLimiter, async (req, res) => {
