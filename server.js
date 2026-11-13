@@ -65,7 +65,7 @@ const durations = {
   "2592000000": { label: "30 يوماً", price: 10 }
 };
 
-const emptyStore = () => ({ resellers: [], keys: [], createdAt: new Date().toISOString() });
+const emptyStore = () => ({ resellers: [], keys: [], activations: [], createdAt: new Date().toISOString() });
 let queue = Promise.resolve();
 
 async function readStore() {
@@ -75,6 +75,7 @@ async function readStore() {
     return {
       resellers: Array.isArray(parsed.resellers) ? parsed.resellers : [],
       keys: Array.isArray(parsed.keys) ? parsed.keys : [],
+      activations: Array.isArray(parsed.activations) ? parsed.activations : [],
       createdAt: parsed.createdAt || new Date().toISOString()
     };
   } catch (error) {
@@ -104,6 +105,9 @@ function mutateStore(operation) {
 const sha256 = value => crypto.createHash("sha256").update(String(value)).digest("hex");
 const newId = () => crypto.randomUUID();
 const newCode = prefix => prefix + "-" + crypto.randomBytes(9).toString("hex").toUpperCase();
+const newLicenseCode = () => `Nacer-${crypto.randomBytes(2).toString("hex").toUpperCase()}_${crypto.randomBytes(2).toString("hex").toUpperCase()}-${crypto.randomBytes(2).toString("hex").toUpperCase()}`;
+const normalizeLicenseCode = value => String(value || "").normalize("NFKC").replace(/[\\u200B-\\u200D\\uFEFF]/g, "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+const isSupportedLicenseCode = value => /^NACER[A-F0-9]{12}$/.test(value) || /^HAXK[A-F0-9]{18}$/.test(value);
 const cleanLabel = value => String(value || "").trim().replace(/[<>]/g, "").slice(0, 60);
 
 function issueToken(subject, role) {
@@ -169,7 +173,7 @@ app.get("/api/admin/overview", requireAuth("admin"), async (_req, res) => {
   res.json({
     resellers: store.resellers.length,
     keys: store.keys.length,
-    activeKeys: store.keys.filter(key => new Date(key.expiresAt).getTime() > Date.now()).length,
+    activeKeys: store.keys.filter(key => key.isActive !== false && new Date(key.expiresAt).getTime() > Date.now()).length,
     balance: Number(store.resellers.reduce((sum, item) => sum + Number(item.balance || 0), 0).toFixed(2))
   });
 });
@@ -218,10 +222,91 @@ app.delete("/api/admin/resellers/:id", requireAuth("admin"), async (req, res) =>
   const removed = await mutateStore(store => {
     const before = store.resellers.length;
     store.resellers = store.resellers.filter(item => item.id !== req.params.id);
+    const removedIds = new Set(store.keys.filter(key => key.resellerId === req.params.id).map(key => key.id));
     store.keys = store.keys.filter(key => key.resellerId !== req.params.id);
+    store.activations = store.activations.filter(item => !removedIds.has(item.keyId));
     return store.resellers.length !== before;
   });
   if (!removed) return res.status(404).json({ error: "الموزع غير موجود." });
+  res.json({ ok: true });
+});
+
+app.get("/api/admin/keys", requireAuth("admin"), async (_req, res) => {
+  const store = await readStore();
+  const keys = store.keys.slice().sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))).map(key => {
+    const reseller = store.resellers.find(item => item.id === key.resellerId);
+    const usedDevices = store.activations.filter(item => item.keyId === key.id).length;
+    const expired = !key.expiresAt || new Date(key.expiresAt).getTime() <= Date.now();
+    return { ...key, resellerLabel: reseller ? reseller.label : "الإدارة", usedDevices, expired, isActive: key.isActive !== false };
+  });
+  res.json({ keys });
+});
+
+app.post("/api/admin/keys", requireAuth("admin"), async (req, res) => {
+  const durationMs = String(req.body?.durationMs || "");
+  const quantity = Number(req.body?.quantity);
+  const devices = Number(req.body?.devices);
+  if (!durations[durationMs]) return res.status(400).json({ error: "مدة المفتاح غير صالحة." });
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 50) return res.status(400).json({ error: "الكمية يجب أن تكون بين 1 و50." });
+  if (![1, 2, 3, 5].includes(devices)) return res.status(400).json({ error: "عدد الأجهزة غير صالح." });
+  const created = await mutateStore(store => {
+    const now = Date.now();
+    const keys = Array.from({ length: quantity }, () => {
+      const key = {
+        id: newId(), code: newLicenseCode(), resellerId: null,
+        durationMs: Number(durationMs), durationLabel: durations[durationMs].label,
+        devices, isActive: true, createdAt: new Date(now).toISOString(),
+        expiresAt: new Date(now + Number(durationMs)).toISOString()
+      };
+      store.keys.push(key);
+      return key;
+    });
+    return keys;
+  });
+  res.status(201).json({ keys: created });
+});
+
+app.patch("/api/admin/keys/:id", requireAuth("admin"), async (req, res) => {
+  const { isActive, expiresAt, devices } = req.body || {};
+  if (isActive !== undefined && typeof isActive !== "boolean") return res.status(400).json({ error: "حالة المفتاح غير صالحة." });
+  if (devices !== undefined && ![1, 2, 3, 5].includes(Number(devices))) return res.status(400).json({ error: "عدد الأجهزة غير صالح." });
+  if (expiresAt !== undefined && !Number.isFinite(Date.parse(expiresAt))) return res.status(400).json({ error: "تاريخ الانتهاء غير صالح." });
+  const updated = await mutateStore(store => {
+    const key = store.keys.find(item => item.id === req.params.id);
+    if (!key) return null;
+    if (devices !== undefined) {
+      const used = store.activations.filter(item => item.keyId === key.id).length;
+      if (Number(devices) < used) return { conflict: true };
+      key.devices = Number(devices);
+    }
+    if (isActive !== undefined) key.isActive = isActive;
+    if (expiresAt !== undefined) key.expiresAt = new Date(expiresAt).toISOString();
+    return key;
+  });
+  if (!updated) return res.status(404).json({ error: "المفتاح غير موجود." });
+  if (updated.conflict) return res.status(409).json({ error: "عدد الأجهزة أقل من عدد الأجهزة المستخدمة حالياً." });
+  res.json({ key: updated });
+});
+
+app.post("/api/admin/keys/:id/reset", requireAuth("admin"), async (req, res) => {
+  const result = await mutateStore(store => {
+    if (!store.keys.some(item => item.id === req.params.id)) return null;
+    const before = store.activations.length;
+    store.activations = store.activations.filter(item => item.keyId !== req.params.id);
+    return before - store.activations.length;
+  });
+  if (result === null) return res.status(404).json({ error: "المفتاح غير موجود." });
+  res.json({ ok: true, resetDevices: result });
+});
+
+app.delete("/api/admin/keys/:id", requireAuth("admin"), async (req, res) => {
+  const deleted = await mutateStore(store => {
+    const before = store.keys.length;
+    store.keys = store.keys.filter(item => item.id !== req.params.id);
+    store.activations = store.activations.filter(item => item.keyId !== req.params.id);
+    return store.keys.length !== before;
+  });
+  if (!deleted) return res.status(404).json({ error: "المفتاح غير موجود." });
   res.json({ ok: true });
 });
 
@@ -229,6 +314,7 @@ app.delete("/api/admin/keys", requireAuth("admin"), async (_req, res) => {
   const count = await mutateStore(store => {
     const previous = store.keys.length;
     store.keys = [];
+    store.activations = [];
     return previous;
   });
   res.json({ ok: true, deleted: count });
@@ -243,7 +329,7 @@ app.get("/api/reseller/me", requireAuth("reseller"), async (req, res) => {
 
 app.get("/api/reseller/keys", requireAuth("reseller"), async (req, res) => {
   const store = await readStore();
-  const keys = store.keys.filter(key => key.resellerId === req.reseller.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const keys = store.keys.filter(key => key.resellerId === req.reseller.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(key => ({ ...key, usedDevices: store.activations.filter(item => item.keyId === key.id).length, isActive: key.isActive !== false }));
   res.json({ keys });
 });
 
@@ -262,11 +348,11 @@ app.post("/api/reseller/keys", requireAuth("reseller"), async (req, res) => {
     const now = Date.now();
     const created = Array.from({ length: quantity }, () => {
       const key = {
-        id: newId(), code: newCode("HAX-K"),
+        id: newId(), code: newLicenseCode(),
         resellerId: reseller.id,
         durationMs: Number(durationMs),
         durationLabel: durations[durationMs].label,
-        devices,
+        devices, isActive: true,
         createdAt: new Date(now).toISOString(),
         expiresAt: new Date(now + Number(durationMs)).toISOString()
       };
@@ -284,7 +370,8 @@ app.delete("/api/reseller/keys/:id", requireAuth("reseller"), async (req, res) =
   const deleted = await mutateStore(store => {
     const index = store.keys.findIndex(key => key.id === req.params.id && key.resellerId === req.reseller.id);
     if (index < 0) return false;
-    store.keys.splice(index, 1);
+    const [removed] = store.keys.splice(index, 1);
+    store.activations = store.activations.filter(item => item.keyId !== removed.id);
     return true;
   });
   if (!deleted) return res.status(404).json({ error: "المفتاح غير موجود." });
@@ -294,10 +381,51 @@ app.delete("/api/reseller/keys/:id", requireAuth("reseller"), async (req, res) =
 app.delete("/api/reseller/keys", requireAuth("reseller"), async (req, res) => {
   const count = await mutateStore(store => {
     const before = store.keys.length;
+    const removedIds = new Set(store.keys.filter(key => key.resellerId === req.reseller.id).map(key => key.id));
     store.keys = store.keys.filter(key => key.resellerId !== req.reseller.id);
+    store.activations = store.activations.filter(item => !removedIds.has(item.keyId));
     return before - store.keys.length;
   });
   res.json({ ok: true, deleted: count });
+});
+
+const verifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { valid: false, reason: "too_many_requests" }
+});
+
+app.post("/api/check", verifyLimiter, async (req, res) => {
+  const code = normalizeLicenseCode(req.body?.code);
+  if (!isSupportedLicenseCode(code)) return res.json({ valid: false, reason: "invalid_format" });
+  const store = await readStore();
+  const key = store.keys.find(item => normalizeLicenseCode(item.code) === code);
+  if (!key) return res.json({ valid: false, reason: "code_not_found" });
+  if (key.isActive === false) return res.json({ valid: false, reason: "code_disabled" });
+  if (!key.expiresAt || new Date(key.expiresAt).getTime() <= Date.now()) return res.json({ valid: false, reason: "code_expired" });
+  return res.json({ valid: true, expires_at: key.expiresAt, max_devices: key.devices, code: key.code });
+});
+
+app.post("/api/verify", verifyLimiter, async (req, res) => {
+  const code = normalizeLicenseCode(req.body?.code);
+  const deviceId = String(req.body?.device_id || "").trim();
+  if (!isSupportedLicenseCode(code)) return res.json({ valid: false, reason: "invalid_format" });
+  if (deviceId.length < 8 || deviceId.length > 200) return res.json({ valid: false, reason: "missing_params" });
+  const result = await mutateStore(store => {
+    const key = store.keys.find(item => normalizeLicenseCode(item.code) === code);
+    if (!key) return { valid: false, reason: "code_not_found" };
+    if (key.isActive === false) return { valid: false, reason: "code_disabled" };
+    if (!key.expiresAt || new Date(key.expiresAt).getTime() <= Date.now()) return { valid: false, reason: "code_expired" };
+    const existing = store.activations.find(item => item.keyId === key.id && item.deviceId === deviceId);
+    if (existing) return { valid: true, expires_at: key.expiresAt, max_devices: key.devices };
+    const used = store.activations.filter(item => item.keyId === key.id).length;
+    if (used >= Number(key.devices || 1)) return { valid: false, reason: "max_devices_reached" };
+    store.activations.push({ id: newId(), keyId: key.id, deviceId, activatedAt: new Date().toISOString() });
+    return { valid: true, expires_at: key.expiresAt, max_devices: key.devices };
+  });
+  return res.json(result);
 });
 
 app.use(express.static(PUBLIC_DIR, { extensions: ["html"] }));
