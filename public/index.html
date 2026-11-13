@@ -288,14 +288,72 @@ background: none; border: none; color: var(--accent-glow); font-size: 0.75rem; c
 text-shadow: 0 0 8px var(--accent-glow);
 }
 .footer-link-btn:hover { opacity: 0.9; }
+
+/* Client portal — matching the supplied neon dashboard reference */
+body{position:relative;background:radial-gradient(circle at center,#190609 0%,#030407 72%);overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;background-image:linear-gradient(rgba(229,9,20,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(229,9,20,.035) 1px,transparent 1px);background-size:35px 35px;pointer-events:none;z-index:-1}
+.dashboard-container{max-width:420px;min-height:calc(100dvh - 40px)}
+.client-brand{text-align:center;margin:28px 0 34px}
+.client-brand .brand-logo{font-size:2.35rem;letter-spacing:3px}
+.client-brand .brand-logo span{font-size:1.65rem;letter-spacing:5px}
+.client-login-card{width:100%;background:rgba(10,13,20,.94);border:1px solid var(--card-border);border-radius:16px;padding:20px;box-shadow:0 8px 32px rgba(0,0,0,.8),0 0 16px rgba(229,9,20,.14)}
+.client-input-row{display:flex;align-items:center;gap:7px;background:#08090d;border:1px solid var(--card-border);border-radius:13px;padding:7px;margin:9px 0 16px}
+.client-input-row input{min-width:0;flex:1;background:transparent;border:0;outline:0;color:#fff;text-align:center;font-family:Orbitron,Cairo,sans-serif;font-size:.88rem;padding:11px 5px;letter-spacing:1px}
+.client-mini-btn{background:rgba(229,9,20,.15);border:1px solid var(--card-border);color:#fff;padding:9px 11px;border-radius:9px;font-weight:800;font-size:.72rem}
+.client-circle{position:relative;width:190px;height:190px;margin:15px auto 22px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,rgba(229,9,20,.12),transparent 72%);box-shadow:0 0 30px rgba(229,9,20,.13),inset 0 0 20px rgba(229,9,20,.08)}
+.client-circle svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);animation:haxRing 22s linear infinite}
+.client-circle circle{fill:none;stroke:var(--accent-blue);stroke-width:2.5;stroke-dasharray:4 4;filter:drop-shadow(0 0 5px var(--accent-glow))}
+@keyframes haxRing{to{transform:rotate(270deg)}}
+.client-circle-content{position:relative;z-index:1;text-align:center}
+.client-timer{font-family:Orbitron,sans-serif;font-weight:900;font-size:1.2rem;direction:ltr;color:#fff;text-shadow:0 0 12px rgba(255,255,255,.5);margin-top:8px}
+.client-timer small{font-size:.58rem;color:var(--accent-glow);margin:0 2px}
+.client-muted{font-size:.66rem;color:var(--text-muted);font-weight:800;margin-top:4px}
+.client-key-card{display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:right}
+.client-key-card code{font-family:Orbitron,sans-serif;color:var(--accent-glow);font-size:.78rem;overflow-wrap:anywhere}
+.client-info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.client-info{background:var(--card-bg);border:1px solid var(--card-border);border-radius:12px;padding:10px 5px;text-align:center}
+.client-info small{display:block;color:var(--text-muted);font-size:.6rem;font-weight:800}
+.client-info b{display:block;color:#fff;font-size:.7rem;margin-top:4px;overflow-wrap:anywhere}
+.client-subscribe{display:flex;align-items:center;justify-content:space-between;text-align:right;padding:15px 17px;margin-top:12px}
+.client-subscribe span{display:block;font-size:.68rem;opacity:.9}
+.client-links{display:flex;justify-content:center;gap:10px;margin:15px 0}
+.client-links button{background:transparent;border:0;color:var(--accent-glow);font-weight:800;font-size:.72rem}
+@media(max-width:480px){.dashboard-container{min-height:calc(100dvh - 30px)}}
 </style>
 </head>
 <body>
 
 <div class="dashboard-container" id="appRoot">
 
+<!-- ================= 0. بوابة دخول المستخدم ================= -->
+<div id="clientLoginView" class="auth-container-center">
+  <div class="brand-logo-container">
+    <div class="brand-logo">HAX_NON_ROOT<span>CLIENT</span></div>
+    <div class="nav-btns">
+      <button class="top-pill-btn" onclick="showAdminLogin()">ADMIN</button>
+      <button class="top-pill-btn" onclick="showResellerLogin()">RESELLER</button>
+    </div>
+  </div>
+  <div class="client-brand">
+    <div class="auth-sub">SECURE ACCESS GATEWAY</div>
+    <div style="font-size:1.45rem;font-weight:900;margin-top:8px;">مفتاحك، <span style="color:var(--accent-glow);">بوابتك</span></div>
+    <div class="auth-sub" style="margin-top:6px;">أدخل مفتاح HAX_NON_ROOT للمتابعة</div>
+  </div>
+  <div class="client-login-card">
+    <div style="font-size:.72rem;color:var(--accent-glow);font-weight:800;text-align:right;">مفتاح الدخول</div>
+    <div class="client-input-row">
+      <input id="clientAccessKey" type="password" placeholder="Nacer-XXXX_XXXX-XXXX" autocomplete="off" spellcheck="false">
+      <button class="client-mini-btn" onclick="toggleClientKeyVisibility()" type="button">👁</button>
+      <button class="client-mini-btn" onclick="pasteClientKey()" type="button">لصق</button>
+    </div>
+    <button id="clientLoginButton" class="btn-submit" onclick="clientLogin()">تحقق ودخول النظام</button>
+    <div class="msg-box" id="clientLoginMessage"></div>
+  </div>
+  <div class="footer-contact" style="text-align:center;margin-top:20px;font-size:.72rem;color:var(--text-muted);">HAX_NON_ROOT · NACER_22</div>
+</div>
+
 <!-- ================= 1. شاشة تسجيل دخول الموزع ================= -->
-<div id="resellerLoginView" class="auth-container-center">
+<div id="resellerLoginView" class="auth-container-center hidden">
 <div class="brand-logo-container">
 <button class="top-pill-btn" onclick="showAdminLogin()">
 🛡 RESELLER ACCESS
@@ -355,6 +413,46 @@ HAX_NON_ROOT
 </button>
 </div>
 </div>
+</div>
+
+<!-- ================= لوحة المستخدم بعد التحقق ================= -->
+<div id="clientPanel" class="hidden" style="width:100%;">
+  <div class="header-bar">
+    <button class="logout-btn" onclick="clientLogout()">خروج</button>
+    <div class="status-pill" style="color:var(--success-green);">● متصل بأمان</div>
+  </div>
+  <div class="dash-hero-container">
+    <div class="client-circle">
+      <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="45"/></svg>
+      <div class="client-circle-content">
+        <div class="brand-logo" style="font-size:1.05rem;">HAX<span style="display:block;color:var(--accent-glow);font-size:.85rem;">NON_ROOT</span></div>
+        <div id="clientTimer" class="client-timer">00<small>H</small> 00<small>M</small> 00<small>S</small></div>
+        <div class="client-muted">الوقت المتبقي للاشتراك</div>
+      </div>
+    </div>
+  </div>
+  <div class="stat-card client-key-card">
+    <div style="min-width:0;">
+      <div class="client-muted">مفتاح الدخول النشط</div>
+      <code id="clientDisplayKey">••••••••••••</code>
+    </div>
+    <div style="display:flex;gap:6px;">
+      <button class="client-mini-btn" onclick="toggleClientDisplayKey()">👁</button>
+      <button class="client-mini-btn" onclick="copyClientKey()">نسخ</button>
+    </div>
+  </div>
+  <div class="client-info-grid">
+    <div class="client-info"><small>الأجهزة المسموحة</small><b id="clientDeviceLimit">-</b></div>
+    <div class="client-info"><small>تاريخ التفعيل</small><b id="clientCreatedAt">-</b></div>
+    <div class="client-info"><small>تاريخ الانتهاء</small><b id="clientExpiresAt">-</b></div>
+  </div>
+  <button class="btn-submit client-subscribe" onclick="launchHapp()">
+    <span><b>إضافة الاشتراك إلى Happ</b><span>ربط مباشر بتطبيق Happ VPN</span></span><b style="font-size:1.3rem;">➜</b>
+  </button>
+  <div class="client-links">
+    <button onclick="window.open('https://t.me/HWAY_2','_blank')">قناة الدعم</button>
+    <button onclick="clientLogout()">تبديل المفتاح</button>
+  </div>
 </div>
 
 <!-- ================= 3. لوحة تحكم الموزع ================= -->
