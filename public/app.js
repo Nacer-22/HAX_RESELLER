@@ -9,6 +9,13 @@
   let busy = false;
   let currentResellers = [];
   let adminCreatedCodes = [];
+  let clientKey = "";
+  let clientExpiryTime = 0;
+  let clientCreatedTime = 0;
+  let clientDeviceLimit = 1;
+  let clientKeyVisible = false;
+  let clientTimerInterval = null;
+  const HAPP_SUBSCRIPTION_URL = 'happ://crypt5/fzvd4YgqdTHtPvjHwhZcw54y24f7Dk0goBe2Fa1lwDobLeD1wJ/QO6q6l24H6Re0xAiw9PskIQB2kP+rco9tRM+3dKIoFMLXly9M+D4ldIR6piO1jP7rKBCMbFuluqrSjPTdvZ2GCrgAw2OdN9Z3smxJidBwT/Pp5nygdjj4WjatLy07EI3tGhREKTcj1lohQIQ4V8w/OxgmvwGOWRHsEYL2m2PjGST1R3JY/aHOV5x6R4X5OUqBwJMzCt9str+x4gOEen5haEsE33G4fLDuFio0JJrTwH5+J57flABwGFeJ6xUeHvMj3trh12dB6jUOikacLaWDr1K/iiFBmQ/49+Z7erc2SrSba4m7OLM+JytVfUKOcoLliCftLpHJrq3MqsOPstNkTvOx0uQZSTJ7mlsI38vWVjl/eSznEASBgSz8yViHbJuMJdocMub07L3xHO8aWMbln9vVzUlDyD2KaeD9qIQfbVXusHpuitOMCHwuGxWARZcRPA7MzW8D/BZMq4X1FqKBaJYzHBEYbzqGaT4J1fEZ3clHpeOgcdEB8z4fQ/IbdLlTpZFO2l+ueHhPzLRVpINU9aRXCDz3VFFAnJO8PZ5CFpT1N+ixLmQb2fEhyVexHC6MOnF8nRQ630G7z5ierJOGT6MlSVmdKh504SbEPIHCimLjDq6zWFD8WqmbIjEdl5kra6NnqjllRCOpZ9gLA5EHp3ItLgeYLheipP697OxUq/wLnZqrTEtOLrbjH7+aDudlSJrvNlWau7Ar2HWst3QvwP4o2hUVtQSal8jSc7cDJr53xBdEh3Ftba0/NNB4wCh1aP2hTvXeK/wkfgWbzhJwmkeu0rjGcXVUJBqH7lFuHd79qrXyLA2YPyrewPrqC1qbtG1ivYGcD1SQrG/hX+f6ZzI3oG5r7o96dM7Y5GDfdBlfV8oSrrAkz1VQsiqviGG19jWmfoE=ff';
 
   async function api(path, options = {}) {
     if (!apiBase && location.hostname.endsWith("github.io")) {
@@ -45,17 +52,46 @@
     if (content) content.classList.toggle("show");
   }
 
-  function showAdminLogin() {
+  function showClientLogin() {
+    token = "";
+    $("clientPanel").classList.add("hidden");
+    $("adminPanel").classList.add("hidden");
+    $("resellerPanel").classList.add("hidden");
+    $("adminLoginView").classList.add("hidden");
     $("resellerLoginView").classList.add("hidden");
+    $("clientLoginView").classList.remove("hidden");
+  }
+
+  function showAdminLogin() {
+    $("clientLoginView").classList.add("hidden");
+    $("clientPanel").classList.add("hidden");
+    $("resellerLoginView").classList.add("hidden");
+    $("resellerPanel").classList.add("hidden");
+    $("adminPanel").classList.add("hidden");
     $("adminLoginView").classList.remove("hidden");
   }
 
   function showResellerLogin() {
+    $("clientLoginView").classList.add("hidden");
+    $("clientPanel").classList.add("hidden");
     $("adminLoginView").classList.add("hidden");
+    $("adminPanel").classList.add("hidden");
+    $("resellerPanel").classList.add("hidden");
     $("resellerLoginView").classList.remove("hidden");
   }
 
+  function showClientPanel() {
+    $("clientLoginView").classList.add("hidden");
+    $("adminLoginView").classList.add("hidden");
+    $("resellerLoginView").classList.add("hidden");
+    $("adminPanel").classList.add("hidden");
+    $("resellerPanel").classList.add("hidden");
+    $("clientPanel").classList.remove("hidden");
+  }
+
   function showAdminPanel() {
+    $("clientLoginView").classList.add("hidden");
+    $("clientPanel").classList.add("hidden");
     $("resellerPanel").classList.add("hidden");
     $("adminLoginView").classList.add("hidden");
     $("resellerLoginView").classList.add("hidden");
@@ -63,10 +99,147 @@
   }
 
   function showResellerPanel() {
+    $("clientLoginView").classList.add("hidden");
+    $("clientPanel").classList.add("hidden");
     $("adminPanel").classList.add("hidden");
     $("adminLoginView").classList.add("hidden");
     $("resellerLoginView").classList.add("hidden");
     $("resellerPanel").classList.remove("hidden");
+  }
+
+  function showClientMessage(message, color) {
+    const element = $("clientLoginMessage");
+    if (!element) return;
+    element.style.color = color || "var(--accent-glow)";
+    element.textContent = message;
+  }
+
+  function getClientDeviceId() {
+    let id = localStorage.getItem("hax_non_root_device_id");
+    if (!id) {
+      id = window.crypto && typeof window.crypto.randomUUID === "function"
+        ? window.crypto.randomUUID()
+        : "hax-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+      localStorage.setItem("hax_non_root_device_id", id);
+    }
+    return id;
+  }
+
+  function formatClientDate(value) {
+    return value && Number.isFinite(Number(value)) ? new Date(Number(value)).toLocaleDateString("ar") : "—";
+  }
+
+  function startClientCountdown() {
+    if (clientTimerInterval) clearInterval(clientTimerInterval);
+    const update = () => {
+      const diff = clientExpiryTime - Date.now();
+      if (diff <= 0) {
+        $("clientTimer").textContent = "EXPIRED";
+        clearInterval(clientTimerInterval);
+        clientTimerInterval = null;
+        return;
+      }
+      const hours = Math.floor(diff / 3600000);
+      const minutes = Math.floor((diff % 3600000) / 60000);
+      const seconds = Math.floor((diff % 60000) / 1000);
+      $("clientTimer").innerHTML = String(hours).padStart(2,"0") + "<small>H</small> " +
+        String(minutes).padStart(2,"0") + "<small>M</small> " +
+        String(seconds).padStart(2,"0") + "<small>S</small>";
+    };
+    update();
+    clientTimerInterval = setInterval(update, 1000);
+  }
+
+  async function clientLogin() {
+    const key = String($("clientAccessKey").value || "").trim();
+    if (!key) return showClientMessage("أدخل مفتاح الدخول أولاً.", "var(--danger-red)");
+    const button = $("clientLoginButton");
+    button.disabled = true;
+    showClientMessage("⏳ جارٍ التحقق من المفتاح...");
+    try {
+      const checked = await api("/api/check", {
+        method: "POST", body: JSON.stringify({ code: key })
+      });
+      if (!checked.valid) {
+        const messages = {
+          invalid_format: "صيغة المفتاح غير صحيحة.",
+          code_not_found: "هذا المفتاح غير موجود.",
+          code_disabled: "تم إيقاف هذا المفتاح من الإدارة.",
+          code_expired: "انتهت صلاحية هذا المفتاح.",
+          too_many_requests: "محاولات كثيرة. حاول لاحقاً."
+        };
+        throw new Error(messages[checked.reason] || "تعذر التحقق من المفتاح.");
+      }
+      const verified = await api("/api/verify", {
+        method: "POST", body: JSON.stringify({ code: key, device_id: getClientDeviceId() })
+      });
+      if (!verified.valid) {
+        const messages = {
+          max_devices_reached: "وصل المفتاح إلى الحد الأقصى للأجهزة.",
+          code_disabled: "تم إيقاف هذا المفتاح.",
+          code_expired: "انتهت صلاحية هذا المفتاح.",
+          code_not_found: "هذا المفتاح غير موجود."
+        };
+        throw new Error(messages[verified.reason] || "لم يتم قبول هذا الجهاز.");
+      }
+      clientKey = checked.code || key;
+      clientExpiryTime = Date.parse(verified.expires_at || checked.expires_at);
+      clientCreatedTime = Date.parse(checked.created_at || Date.now());
+      clientDeviceLimit = Number(checked.max_devices || 1);
+      clientKeyVisible = false;
+      $("clientDisplayKey").textContent = "••••••••••••";
+      $("clientDeviceLimit").textContent = String(clientDeviceLimit);
+      $("clientCreatedAt").textContent = formatClientDate(clientCreatedTime);
+      $("clientExpiresAt").textContent = formatClientDate(clientExpiryTime);
+      showClientPanel();
+      startClientCountdown();
+      showClientMessage("");
+    } catch (error) {
+      showClientMessage("❌ " + error.message, "var(--danger-red)");
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  function toggleClientKeyVisibility() {
+    const input = $("clientAccessKey");
+    input.type = input.type === "password" ? "text" : "password";
+  }
+
+  async function pasteClientKey() {
+    try {
+      const value = await navigator.clipboard.readText();
+      if (value) {
+        $("clientAccessKey").value = value.trim();
+        showClientMessage("✔ تم لصق المفتاح.", "var(--success-green)");
+      }
+    } catch {
+      showClientMessage("اسمح للمتصفح بالوصول إلى الحافظة أو الصق المفتاح يدوياً.", "var(--danger-red)");
+    }
+  }
+
+  function toggleClientDisplayKey() {
+    clientKeyVisible = !clientKeyVisible;
+    $("clientDisplayKey").textContent = clientKeyVisible ? clientKey : "••••••••••••";
+  }
+
+  function copyClientKey() {
+    if (clientKey) copyText(clientKey);
+  }
+
+  function clientLogout() {
+    if (clientTimerInterval) clearInterval(clientTimerInterval);
+    clientTimerInterval = null;
+    clientKey = "";
+    clientExpiryTime = 0;
+    clientCreatedTime = 0;
+    $("clientAccessKey").value = "";
+    showClientLogin();
+  }
+
+  function launchHapp() {
+    if (!clientKey) return;
+    window.location.href = HAPP_SUBSCRIPTION_URL;
   }
 
   async function loginAsReseller() {
@@ -116,8 +289,9 @@
     $("resellerPanel").classList.add("hidden");
     $("adminPanel").classList.add("hidden");
     $("adminLoginView").classList.add("hidden");
-    $("resellerLoginView").classList.remove("hidden");
-    showMsg("Logged out.");
+    $("resellerLoginView").classList.add("hidden");
+    showClientLogin();
+    showMsg("تم تسجيل الخروج.");
   }
 
   async function loadResellerPanelData() {
@@ -437,6 +611,14 @@
   });
 
   window.toggleAccordion = toggleAccordion;
+  window.showClientLogin = showClientLogin;
+  window.clientLogin = clientLogin;
+  window.clientLogout = clientLogout;
+  window.toggleClientKeyVisibility = toggleClientKeyVisibility;
+  window.pasteClientKey = pasteClientKey;
+  window.toggleClientDisplayKey = toggleClientDisplayKey;
+  window.copyClientKey = copyClientKey;
+  window.launchHapp = launchHapp;
   window.showAdminLogin = showAdminLogin;
   window.showResellerLogin = showResellerLogin;
   window.loginAsReseller = loginAsReseller;
