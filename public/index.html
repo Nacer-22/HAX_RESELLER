@@ -524,6 +524,45 @@ HAX_NON_ROOT
 </div>
 </div>
 
+<div class="accordion-item">
+  <div class="accordion-header active" onclick="toggleAccordion(this)">
+    <span>🔐 إدارة جميع المفاتيح</span>
+    <span class="accordion-icon">❯</span>
+  </div>
+  <div class="accordion-content show">
+    <div style="font-size:.72rem;color:var(--accent-glow);font-weight:800;">إنشاء مفاتيح مباشرة من الإدارة</div>
+    <select id="adminKeyDuration" class="input-field">
+      <option value="3600000">ساعة واحدة</option><option value="10800000">3 ساعات</option>
+      <option value="21600000">6 ساعات</option><option value="43200000">12 ساعة</option>
+      <option value="86400000">24 ساعة</option><option value="259200000">3 أيام</option>
+      <option value="604800000">7 أيام</option><option value="1296000000">15 يوماً</option>
+      <option value="2592000000" selected>30 يوماً</option>
+    </select>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <select id="adminKeyDevices" class="input-field" style="flex:1;min-width:110px;">
+        <option value="1">جهاز واحد</option><option value="2">جهازان</option><option value="3">3 أجهزة</option><option value="5">5 أجهزة</option>
+      </select>
+      <input id="adminKeyQuantity" class="input-field" type="number" min="1" max="50" value="1" style="flex:1;min-width:90px;" aria-label="عدد المفاتيح">
+    </div>
+    <button class="btn-submit" onclick="adminGenerateKeys()">＋ إنشاء مفاتيح</button>
+    <div id="adminCreatedKeys" class="hidden" style="margin-top:10px;padding:12px;border:1px solid rgba(0,230,118,.35);border-radius:12px;background:rgba(0,230,118,.07);">
+      <div style="color:var(--success-green);font-size:.75rem;font-weight:900;margin-bottom:8px;">المفاتيح الجديدة</div>
+      <div id="adminCreatedKeysList" style="display:grid;gap:7px;"></div>
+      <button class="btn-share-vibrant" style="margin-top:10px;" onclick="copyAdminCreatedKeys()">نسخ جميع المفاتيح</button>
+    </div>
+    <div class="table-header-action" style="margin-top:18px;">
+      <span style="font-size:.75rem;color:var(--text-muted);">كل مفاتيح النظام</span>
+      <button class="top-pill-btn" onclick="loadAdminDashboard()">تحديث</button>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="resellers-table" style="min-width:720px;">
+        <thead><tr><th>المفتاح</th><th>المالك</th><th>الانتهاء</th><th>الأجهزة</th><th>المستخدم</th><th>الحالة</th><th>التحكم</th></tr></thead>
+        <tbody id="adminKeysTableBody"><tr><td colspan="7" style="text-align:center;">جارٍ التحميل...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 </div>
 
 <div id="msg" class="msg-box"></div>
