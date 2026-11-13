@@ -95,7 +95,7 @@
       const active = k.isActive !== false && !expired;
       const status = active ? "ACTIVE" : (k.isActive === false ? "STOPPED" : "EXPIRED");
       return '<div style="background:rgba(10,13,20,.9);border:1px solid var(--card-border);padding:12px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
-       '<div style="min-width:0"><div class="code-text">#' + (i + 1) + ' ' + safe(k.code) + '</div><div style="font-size:.7rem;color:var(--text-muted)">' + safe(k.durationLabel) + ' | Devices: ' + safe(k.devices) + ' | ' + status + '</div></div>' +
+       '<div style="min-width:0"><div class="code-text">#' + (i + 1) + ' ' + safe(k.code) + '</div><div style="font-size:.7rem;color:var(--text-muted)">' + safe(k.durationLabel) + ' | Devices: ' + safe(k.devices) + ' | ' + status + '</div><div style="font-size:.72rem;color:#ff7180;margin-top:5px">الأجهزة المستخدمة: ' + (Array.isArray(k.activations) && k.activations.length ? k.activations.map(a => safe(a.model || "الموديل غير متاح")).join('، ') : 'لم يتم تفعيل المفتاح بعد') + '</div></div>' +
        '<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn-share-vibrant" data-act="share" data-k="' + safe(k.code) + '" data-d="' + safe(k.durationLabel) + '" data-v="' + safe(k.devices) + '">SHARE</button><button class="btn-trash" data-act="delkey" data-k="' + safe(k.id) + '">🗑</button></div></div>';
     }).join("") : '<div style="text-align:center;color:var(--text-muted)">لا توجد مفاتيح بعد.</div>';
   }
