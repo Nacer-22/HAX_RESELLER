@@ -326,9 +326,27 @@ body:before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;bac
 .hax-icon svg{width:16px;height:16px;display:block}
 @media(max-width:520px){.dashboard-container{gap:13px}.brand-logo-container,.header-bar{padding:12px;border-radius:15px}.accordion-content{padding:0 12px 15px}.resellers-table{font-size:.72rem}.resellers-table th,.resellers-table td{padding:10px 5px}}
 
+
+#haxResellerMaintenance{display:none;position:fixed;inset:0;z-index:99999;align-items:center;justify-content:center;padding:22px;background:radial-gradient(circle at 50% 0%,rgba(150,12,40,.25),transparent 45%),#05070d;color:#fff;text-align:center}
+#haxResellerMaintenance .maintenance-card{width:min(100%,440px);padding:34px 24px;border:1px solid rgba(255,76,105,.38);border-radius:24px;background:linear-gradient(145deg,#111722,#080b12);box-shadow:0 22px 70px rgba(0,0,0,.58),0 0 35px rgba(180,12,48,.14)}
+#haxResellerMaintenance .maintenance-symbol{width:76px;height:76px;margin:0 auto 20px;border:1px solid rgba(255,85,110,.45);border-radius:22px;display:grid;place-items:center;color:#ff607d;font-size:34px;background:rgba(160,15,45,.16)}
+#haxResellerMaintenance h1{font-size:1.45rem;margin:0 0 12px;color:#ff7189}
+#haxResellerMaintenance p{color:#b9c3d1;line-height:1.9;font-size:.94rem}
+#haxResellerMaintenance .maintenance-caption{margin-top:22px;color:#ff7189;font-size:.72rem;font-weight:900;letter-spacing:2px}
+
 </style>
 </head>
 <body>
+
+
+<div id="haxResellerMaintenance" role="status" aria-live="polite">
+  <div class="maintenance-card">
+    <div class="maintenance-symbol" aria-hidden="true">⚙</div>
+    <h1>لوحة الموزعين تحت الصيانة</h1>
+    <p>نعمل حالياً على تحديث وتحسين لوحة الموزعين. يرجى المحاولة بعد قليل.</p>
+    <div class="maintenance-caption">HAX_NON_ROOT · RESELLER</div>
+  </div>
+</div>
 
 <div class="dashboard-container" id="appRoot">
 
