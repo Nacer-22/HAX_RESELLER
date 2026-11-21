@@ -117,7 +117,10 @@
   }
   async function generateKeys() {
     if (busy) return;
-    const durationMs = Number($("keyDurationSelect").value);
+    const durationAmount = Number($("keyDurationAmount").value);
+    const durationUnit = Number($("keyDurationUnit").value);
+    const durationMs = durationAmount * durationUnit;
+    if (!Number.isSafeInteger(durationMs) || durationMs < 1000 || durationMs > 31536000000) return msg("المدة من ثانية واحدة إلى 365 يوماً.", "var(--danger-red)");
     const devices = Number($("keyMaxDevicesSelect").value);
     const quantity = Number.parseInt($("keyQuantityInput").value, 10);
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10) return msg("الكمية من 1 إلى 10.", "var(--danger-red)");
