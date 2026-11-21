@@ -675,8 +675,7 @@ app.post("/api/verify", verifyLimiter, async (req, res) => {
     if (key.isActive === false) return { valid: false, reason: "code_disabled" };
     if (key.expiresAt && new Date(key.expiresAt).getTime() <= Date.now()) return { valid: false, reason: "code_expired" };
 
-    if (!key.expiresAt) key.expiresAt = new Date(Date.now() + Number(key.durationMs || 0)).toISOString();
-    if (Date.parse(key.expiresAt) <= Date.now()) return { valid: false, reason: "code_expired" };
+    if (key.expiresAt && Date.parse(key.expiresAt) <= Date.now()) return { valid: false, reason: "code_expired" };
 
     let activation = store.activations.find(item => item.keyId === key.id && item.deviceId === deviceId);
     if (activation) {
@@ -691,6 +690,9 @@ app.post("/api/verify", verifyLimiter, async (req, res) => {
       };
       store.activations.push(activation);
     }
+
+    if (!key.expiresAt) key.expiresAt = new Date(Date.now() + Number(key.durationMs || 0)).toISOString();
+    if (Date.parse(key.expiresAt) <= Date.now()) return { valid: false, reason: "code_expired" };
 
     const subscriptionToken = getOrCreateSubscriptionToken(activation);
     return {
