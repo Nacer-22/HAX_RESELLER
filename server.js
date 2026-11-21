@@ -661,7 +661,7 @@ app.post("/api/verify", verifyLimiter, async (req, res) => {
   res.setHeader("Vary", "User-Agent, Sec-CH-UA-Model");
   const rawModel = String(req.body?.device_model || "").trim();
   const rawPlatform = String(req.body?.device_platform || req.get("sec-ch-ua-platform") || "").trim();
-  const hintedModel = String(req.get("sec-ch-ua-model") || "").replace(/^"|"$ /g, "").trim();
+  const hintedModel = String(req.get("sec-ch-ua-model") || "").replace(/^"|"$/g, "").trim();
   const uaModel = inferDeviceFromUserAgent(req.get("user-agent"));
   const suppliedModel = rawModel && rawModel !== "الموديل غير متاح من المتصفح" ? rawModel : "";
   const deviceModel = (suppliedModel || hintedModel || uaModel).replace(/[<>\u0000-\u001f]/g, "").slice(0, 80);
