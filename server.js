@@ -292,7 +292,7 @@ app.get("/api/admin/overview", requireAuth("admin"), async (_req, res) => {
   res.json({
     resellers: store.resellers.length,
     keys: store.keys.length,
-    activeKeys: store.keys.filter(key => key.isActive !== false && new Date(key.expiresAt).getTime() > Date.now()).length,
+    activeKeys: store.keys.filter(key => key.isActive !== false && (!key.expiresAt || new Date(key.expiresAt).getTime() > Date.now())).length,
     balance: Number(store.resellers.reduce((sum, item) => sum + Number(item.balance || 0), 0).toFixed(2))
   });
 });
@@ -545,7 +545,7 @@ app.post("/api/reseller/keys", requireAuth("reseller"), async (req, res) => {
         durationLabel: durationInfo.label,
         devices, isActive: true,
         createdAt: new Date(now).toISOString(),
-        expiresAt: new Date(now + Number(durationMs)).toISOString()
+        expiresAt: null
       };
       store.keys.push(key);
       return key;
