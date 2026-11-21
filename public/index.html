@@ -438,16 +438,9 @@ HAX_NON_ROOT
 <div class="accordion-content show">
 
 <div style="font-size: 0.7rem; color: var(--accent-glow); font-weight: 700; text-align: right; margin-bottom: -6px;">مدة المفتاح (DURATION)</div>
-<select id="keyDurationSelect" class="input-field">
-<option value="3600000">1 Hour - 0.50</option>
-<option value="10800000">3 Hours - 1.00</option>
-<option value="21600000">6 Hours - 1.50</option>
-<option value="43200000">12 Hours - 2.00</option>
-<option value="86400000">24 Hours - 2.50</option>
-<option value="259200000">3 Days - 3.50</option>
-<option value="604800000">7 Days - 4.50</option>
-<option value="1296000000">15 Days - 6.00</option>
-<option value="2592000000" selected>30 Days - 10.00</option>
+<input id="keyDurationAmount" class="input-field" type="number" min="1" max="31536000" value="30" inputmode="numeric" placeholder="مدة المفتاح">
+<select id="keyDurationUnit" class="input-field">
+<option value="1000">ثوانٍ (Seconds)</option><option value="60000">دقائق (Minutes)</option><option value="3600000">ساعات (Hours)</option><option value="86400000" selected>أيام (Days)</option>
 </select>
 
 <div style="font-size: 0.7rem; color: var(--accent-glow); font-weight: 700; text-align: right; margin-bottom: -6px;">عدد الأجهزة المسموحة (ALLOWED DEVICES)</div>
