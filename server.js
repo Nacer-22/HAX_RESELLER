@@ -87,17 +87,14 @@ const authLimiter = rateLimit({
   message: { error: "محاولات كثيرة. حاول مرة أخرى بعد قليل." }
 });
 
-const durations = {
-  "3600000": { label: "ساعة واحدة", price: 0.5 },
-  "10800000": { label: "3 ساعات", price: 1 },
-  "21600000": { label: "6 ساعات", price: 1.5 },
-  "43200000": { label: "12 ساعة", price: 2 },
-  "86400000": { label: "24 ساعة", price: 2.5 },
-  "259200000": { label: "3 أيام", price: 3.5 },
-  "604800000": { label: "7 أيام", price: 4.5 },
-  "1296000000": { label: "15 يوماً", price: 6 },
-  "2592000000": { label: "30 يوماً", price: 10 }
-};
+const MAX_KEY_DURATION_MS = 365 * 24 * 60 * 60 * 1000;
+function getDurationInfo(value) {
+  const durationMs = Number(value);
+  if (!Number.isSafeInteger(durationMs) || durationMs < 1000 || durationMs > MAX_KEY_DURATION_MS) return null;
+  const units = [[86400000, "يوم"], [3600000, "ساعة"], [60000, "دقيقة"], [1000, "ثانية"]];
+  const [unitMs, unitLabel] = units.find(([size]) => durationMs % size === 0) || units[3];
+  return { durationMs, label: (durationMs / unitMs) + " " + unitLabel };
+}
 
 const defaultSettings = () => ({ basePrice: 1, maintenance: { client: false, reseller: false }, adminPasswordHash: "", adminSessionVersion: 0, adminPasswordChangedAt: null });
 const emptyStore = () => ({ resellers: [], keys: [], activations: [], settings: defaultSettings(), createdAt: new Date().toISOString() });
@@ -431,10 +428,11 @@ app.get("/api/admin/keys", requireAuth("admin"), async (_req, res) => {
 });
 
 app.post("/api/admin/keys", requireAuth("admin"), async (req, res) => {
-  const durationMs = String(req.body?.durationMs || "");
+  const durationMs = Number(req.body?.durationMs);
+  const durationInfo = getDurationInfo(durationMs);
   const quantity = Number(req.body?.quantity);
   const devices = Number(req.body?.devices);
-  if (!durations[durationMs]) return res.status(400).json({ error: "مدة المفتاح غير صالحة." });
+  if (!durationInfo) return res.status(400).json({ error: "المدة يجب أن تكون من ثانية واحدة إلى 365 يوماً." });
   if (!Number.isInteger(quantity) || quantity < 1 || quantity > 50) return res.status(400).json({ error: "الكمية يجب أن تكون بين 1 و50." });
   if (![1, 2, 3, 5].includes(devices)) return res.status(400).json({ error: "عدد الأجهزة غير صالح." });
   const created = await mutateStore(store => {
@@ -442,7 +440,7 @@ app.post("/api/admin/keys", requireAuth("admin"), async (req, res) => {
     const keys = Array.from({ length: quantity }, () => {
       const key = {
         id: newId(), code: newLicenseCode(), resellerId: null,
-        durationMs: Number(durationMs), durationLabel: durations[durationMs].label,
+        durationMs: durationInfo.durationMs, durationLabel: durationInfo.label,
         devices, isActive: true, createdAt: new Date(now).toISOString(),
         expiresAt: new Date(now + Number(durationMs)).toISOString()
       };
@@ -525,10 +523,11 @@ app.get("/api/reseller/keys", requireAuth("reseller"), async (req, res) => {
 });
 
 app.post("/api/reseller/keys", requireAuth("reseller"), async (req, res) => {
-  const durationMs = String(req.body?.durationMs || "");
+  const durationMs = Number(req.body?.durationMs);
+  const durationInfo = getDurationInfo(durationMs);
   const quantity = Number(req.body?.quantity);
   const devices = Number(req.body?.devices);
-  if (!durations[durationMs]) return res.status(400).json({ error: "مدة المفتاح غير صالحة." });
+  if (!durationInfo) return res.status(400).json({ error: "المدة يجب أن تكون من ثانية واحدة إلى 365 يوماً." });
   if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10) return res.status(400).json({ error: "الكمية يجب أن تكون بين 1 و10." });
   if (![1, 2, 3, 5].includes(devices)) return res.status(400).json({ error: "عدد الأجهزة غير صالح." });
   const result = await mutateStore(store => {
@@ -542,8 +541,8 @@ app.post("/api/reseller/keys", requireAuth("reseller"), async (req, res) => {
       const key = {
         id: newId(), code: newLicenseCode(),
         resellerId: reseller.id,
-        durationMs: Number(durationMs),
-        durationLabel: durations[durationMs].label,
+        durationMs: durationInfo.durationMs,
+        durationLabel: durationInfo.label,
         devices, isActive: true,
         createdAt: new Date(now).toISOString(),
         expiresAt: new Date(now + Number(durationMs)).toISOString()
