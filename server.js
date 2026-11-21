@@ -23,6 +23,9 @@ const ADMIN_PASSWORD_HASH = bcrypt.hash(ADMIN_PASSWORD, 10);
 const DATA_FILE = process.env.DATA_FILE || path.join(__dirname, "data", "store.json");
 const PUBLIC_DIR = path.join(__dirname, "public");
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || "").split(",").map(v => v.trim()).filter(Boolean);
+const SUBSCRIPTION_INTERNAL_SECRET = process.env.SUBSCRIPTION_INTERNAL_SECRET || "";
+const SUBSCRIPTION_PUBLIC_BASE_URL = String(process.env.SUBSCRIPTION_PUBLIC_BASE_URL || "").replace(/\/+$/, "");
+const SUBSCRIPTION_CONFIG_FILE = process.env.SUBSCRIPTION_CONFIG_FILE || "7WAY.json";
 
 if (JWT_SECRET.length < 48) {
   console.error("JWT_SECRET must contain at least 48 random characters.");
@@ -30,6 +33,17 @@ if (JWT_SECRET.length < 48) {
 }
 if (!ADMIN_USERNAME || ADMIN_PASSWORD.length < 14) {
   console.error("Set ADMIN_USERNAME and an ADMIN_PASSWORD of at least 14 characters.");
+  process.exit(1);
+}
+if (Buffer.byteLength(SUBSCRIPTION_INTERNAL_SECRET, "utf8") < 48) {
+  console.error("SUBSCRIPTION_INTERNAL_SECRET must contain at least 48 characters.");
+  process.exit(1);
+}
+try {
+  const subscriptionBase = new URL(SUBSCRIPTION_PUBLIC_BASE_URL);
+  if (subscriptionBase.protocol !== "https:") throw new Error("HTTPS is required.");
+} catch {
+  console.error("SUBSCRIPTION_PUBLIC_BASE_URL must be a valid HTTPS URL.");
   process.exit(1);
 }
 
@@ -55,7 +69,7 @@ const apiLimiter = rateLimit({
   limit: 300,
   standardHeaders: "draft-7",
   legacyHeaders: false,
-  skip: req => req.path === "/health",
+  skip: req => req.path === "/health" || req.path.startsWith("/private/subscription/"),
   message: { error: "طلبات كثيرة من هذا الاتصال. حاول بعد قليل." }
 });
 app.use("/api", apiLimiter);
@@ -142,6 +156,72 @@ const newCode = prefix => prefix + "-" + crypto.randomBytes(9).toString("hex").t
 const newLicenseCode = () => { const raw = crypto.randomBytes(12).toString("hex").toUpperCase(); return `Nacer-${raw.slice(0, 8)}_${raw.slice(8, 16)}-${raw.slice(16, 24)}`; };
 const normalizeLicenseCode = value => String(value || "").normalize("NFKC").replace(/[\u200B-\u200D\uFEFF]/g, "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
 const isSupportedLicenseCode = value => /^NACER(?:[A-F0-9]{12}|[A-F0-9]{24})$/.test(value) || /^HAXK[A-F0-9]{18}$/.test(value);
+
+const SUPPORTED_SUBSCRIPTION_FILES = new Set(["7WAY.json", "Nacer.json", "Subscrip.json", "subscription.json"]);
+const SUBSCRIPTION_TOKEN_KEY = crypto.createHash("sha256").update(SUBSCRIPTION_INTERNAL_SECRET, "utf8").digest();
+
+function encryptStoredSubscriptionToken(token) {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", SUBSCRIPTION_TOKEN_KEY, iv);
+  const encrypted = Buffer.concat([cipher.update(token, "utf8"), cipher.final()]);
+  return [iv.toString("base64url"), cipher.getAuthTag().toString("base64url"), encrypted.toString("base64url")].join(".");
+}
+
+function decryptStoredSubscriptionToken(value) {
+  const parts = String(value || "").split(".");
+  if (parts.length !== 3) throw new Error("Invalid stored subscription token.");
+  const iv = Buffer.from(parts[0], "base64url");
+  const tag = Buffer.from(parts[1], "base64url");
+  const encrypted = Buffer.from(parts[2], "base64url");
+  if (iv.length !== 12 || tag.length !== 16 || !encrypted.length) throw new Error("Invalid stored subscription token.");
+  const decipher = crypto.createDecipheriv("aes-256-gcm", SUBSCRIPTION_TOKEN_KEY, iv);
+  decipher.setAuthTag(tag);
+  return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString("utf8");
+}
+
+function getOrCreateSubscriptionToken(activation) {
+  if (activation.subscriptionTokenHash && activation.subscriptionTokenCipher) {
+    try {
+      const token = decryptStoredSubscriptionToken(activation.subscriptionTokenCipher);
+      if (/^[A-Za-z0-9_-]{43}$/.test(token) && sha256(token) === activation.subscriptionTokenHash) return token;
+    } catch {}
+  }
+  const token = crypto.randomBytes(32).toString("base64url");
+  activation.subscriptionTokenHash = sha256(token);
+  activation.subscriptionTokenCipher = encryptStoredSubscriptionToken(token);
+  delete activation.happUrlEncrypted;
+  return token;
+}
+
+function suppliedSubscriptionSecretMatches(value) {
+  const actual = Buffer.from(String(value || ""), "utf8");
+  const expected = Buffer.from(SUBSCRIPTION_INTERNAL_SECRET, "utf8");
+  return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
+}
+
+async function createHappEncryptedLink(subscriptionUrl) {
+  const response = await fetch("https://crypto.happ.su/api-v2.php", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Accept": "application/json, text/plain" },
+    body: JSON.stringify({ url: subscriptionUrl }),
+    signal: AbortSignal.timeout(15000)
+  });
+  const body = await response.text();
+  if (!response.ok) throw new Error("Happ encryption API returned HTTP " + response.status);
+  let candidates = [body.trim()];
+  try {
+    const parsed = JSON.parse(body);
+    const collect = value => {
+      if (typeof value === "string") candidates.push(value.trim());
+      else if (Array.isArray(value)) value.forEach(collect);
+      else if (value && typeof value === "object") Object.values(value).forEach(collect);
+    };
+    collect(parsed);
+  } catch {}
+  const link = candidates.find(value => /^happ:\/\/crypt5\//.test(value));
+  if (!link) throw new Error("Happ encryption API did not return a crypt5 link.");
+  return link;
+}
 const cleanLabel = value => String(value || "").trim().replace(/[<>]/g, "").slice(0, 60);
 
 function issueToken(subject, role, sessionVersion = 0) {
@@ -546,6 +626,34 @@ function inferDeviceFromUserAgent(userAgent) {
   return ("جهاز غير محدد · " + browser).slice(0, 80);
 }
 
+app.get("/api/private/subscription/:token", async (req, res) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  if (!suppliedSubscriptionSecretMatches(req.get("x-hax-subscription-secret"))) {
+    return res.status(404).type("text/plain").send("Not found");
+  }
+  const token = String(req.params.token || "");
+  if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return res.status(404).type("text/plain").send("Not found");
+
+  const store = await readStore();
+  const activation = store.activations.find(item => item.subscriptionTokenHash === sha256(token));
+  if (!activation) {
+    return res.status(410).type("text/plain").send("Votre clé a expiré. Veuillez en acheter une nouvelle ⛔");
+  }
+  const key = store.keys.find(item => item.id === activation.keyId);
+  const expiry = key && Date.parse(key.expiresAt || "");
+  if (!key || key.isActive === false || !Number.isFinite(expiry) || expiry <= Date.now()) {
+    return res.status(410).type("text/plain").send("Votre clé a expiré. Veuillez en acheter une nouvelle ⛔");
+  }
+  if (store.settings.maintenance.client) {
+    return res.status(503).type("text/plain").send("Le service est temporairement indisponible.");
+  }
+  const filename = SUPPORTED_SUBSCRIPTION_FILES.has(key.subscriptionFile)
+    ? key.subscriptionFile
+    : (SUPPORTED_SUBSCRIPTION_FILES.has(SUBSCRIPTION_CONFIG_FILE) ? SUBSCRIPTION_CONFIG_FILE : "7WAY.json");
+  return res.json({ ok: true, filename, expires_at: key.expiresAt });
+});
+
 app.post("/api/verify", verifyLimiter, async (req, res) => {
   const code = normalizeLicenseCode(req.body?.code);
   const deviceId = String(req.body?.device_id || "").trim();
@@ -553,31 +661,79 @@ app.post("/api/verify", verifyLimiter, async (req, res) => {
   res.setHeader("Vary", "User-Agent, Sec-CH-UA-Model");
   const rawModel = String(req.body?.device_model || "").trim();
   const rawPlatform = String(req.body?.device_platform || req.get("sec-ch-ua-platform") || "").trim();
-  const hintedModel = String(req.get("sec-ch-ua-model") || "").replace(/^"|"$/g, "").trim();
+  const hintedModel = String(req.get("sec-ch-ua-model") || "").replace(/^"|"$ /g, "").trim();
   const uaModel = inferDeviceFromUserAgent(req.get("user-agent"));
   const suppliedModel = rawModel && rawModel !== "الموديل غير متاح من المتصفح" ? rawModel : "";
   const deviceModel = (suppliedModel || hintedModel || uaModel).replace(/[<>\u0000-\u001f]/g, "").slice(0, 80);
   const devicePlatform = rawPlatform.replace(/[<>\u0000-\u001f]/g, "").slice(0, 40);
   if (!isSupportedLicenseCode(code)) return res.json({ valid: false, reason: "invalid_format" });
   if (deviceId.length < 8 || deviceId.length > 200) return res.json({ valid: false, reason: "missing_params" });
+
   const result = await mutateStore(store => {
     if (store.settings.maintenance.client) return { valid: false, reason: "maintenance" };
     const key = store.keys.find(item => normalizeLicenseCode(item.code) === code);
     if (!key) return { valid: false, reason: "code_not_found" };
     if (key.isActive === false) return { valid: false, reason: "code_disabled" };
     if (!key.expiresAt || new Date(key.expiresAt).getTime() <= Date.now()) return { valid: false, reason: "code_expired" };
-    const existing = store.activations.find(item => item.keyId === key.id && item.deviceId === deviceId);
-    if (existing) {
-      if (deviceModel !== "الموديل غير متاح") existing.deviceModel = deviceModel;
-      if (devicePlatform) existing.devicePlatform = devicePlatform;
-      return { valid: true, expires_at: key.expiresAt, max_devices: key.devices };
+
+    let activation = store.activations.find(item => item.keyId === key.id && item.deviceId === deviceId);
+    if (activation) {
+      if (deviceModel !== "الموديل غير متاح") activation.deviceModel = deviceModel;
+      if (devicePlatform) activation.devicePlatform = devicePlatform;
+    } else {
+      const used = store.activations.filter(item => item.keyId === key.id).length;
+      if (used >= Number(key.devices || 1)) return { valid: false, reason: "max_devices_reached" };
+      activation = {
+        id: newId(), keyId: key.id, deviceId, deviceModel, devicePlatform,
+        activatedAt: new Date().toISOString()
+      };
+      store.activations.push(activation);
     }
-    const used = store.activations.filter(item => item.keyId === key.id).length;
-    if (used >= Number(key.devices || 1)) return { valid: false, reason: "max_devices_reached" };
-    store.activations.push({ id: newId(), keyId: key.id, deviceId, deviceModel, devicePlatform, activatedAt: new Date().toISOString() });
-    return { valid: true, expires_at: key.expiresAt, max_devices: key.devices };
+
+    const subscriptionToken = getOrCreateSubscriptionToken(activation);
+    return {
+      valid: true,
+      expires_at: key.expiresAt,
+      max_devices: key.devices,
+      activationId: activation.id,
+      subscriptionToken,
+      happ_url: activation.happUrlEncrypted || null
+    };
   });
-  return res.json(result);
+
+  if (!result.valid) return res.json(result);
+  let happUrl = result.happ_url;
+  if (!happUrl || !happUrl.startsWith("happ://crypt5/")) {
+    const subscriptionUrl = SUBSCRIPTION_PUBLIC_BASE_URL + "/s/" + encodeURIComponent(result.subscriptionToken);
+    try {
+      happUrl = await createHappEncryptedLink(subscriptionUrl);
+    } catch (error) {
+      console.error("Happ encrypted link creation failed:", error.message);
+      return res.status(503).json({
+        valid: false,
+        reason: "happ_link_unavailable",
+        error: "تعذر إنشاء رابط Happ المشفّر حالياً. حاول مرة أخرى."
+      });
+    }
+
+    const saved = await mutateStore(store => {
+      const activation = store.activations.find(item => item.id === result.activationId);
+      const key = activation && store.keys.find(item => item.id === activation.keyId);
+      if (!activation || activation.subscriptionTokenHash !== sha256(result.subscriptionToken) ||
+          !key || key.isActive === false || !key.expiresAt || Date.parse(key.expiresAt) <= Date.now()) return false;
+      if (!activation.happUrlEncrypted) activation.happUrlEncrypted = happUrl;
+      happUrl = activation.happUrlEncrypted;
+      return true;
+    });
+    if (!saved) return res.json({ valid: false, reason: "code_disabled" });
+  }
+
+  return res.json({
+    valid: true,
+    expires_at: result.expires_at,
+    max_devices: result.max_devices,
+    happ_url: happUrl
+  });
 });
 
 app.use(express.static(PUBLIC_DIR, { extensions: ["html"] }));
