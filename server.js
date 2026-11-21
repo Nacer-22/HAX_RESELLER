@@ -421,7 +421,7 @@ app.get("/api/admin/keys", requireAuth("admin"), async (_req, res) => {
     const reseller = store.resellers.find(item => item.id === key.resellerId);
     const activations = store.activations.filter(item => item.keyId === key.id);
     const usedDevices = activations.length;
-    const expired = !key.expiresAt || new Date(key.expiresAt).getTime() <= Date.now();
+    const expired = Boolean(key.expiresAt) && new Date(key.expiresAt).getTime() <= Date.now();
     return { ...key, resellerLabel: reseller ? reseller.label : "الإدارة", usedDevices, activations: activations.map(item => ({ model: item.deviceModel || "الموديل غير متاح", platform: item.devicePlatform || "", activatedAt: item.activatedAt })), expired, isActive: key.isActive !== false };
   });
   res.json({ keys });
@@ -442,7 +442,7 @@ app.post("/api/admin/keys", requireAuth("admin"), async (req, res) => {
         id: newId(), code: newLicenseCode(), resellerId: null,
         durationMs: durationInfo.durationMs, durationLabel: durationInfo.label,
         devices, isActive: true, createdAt: new Date(now).toISOString(),
-        expiresAt: new Date(now + Number(durationMs)).toISOString()
+        expiresAt: null
       };
       store.keys.push(key);
       return key;
@@ -596,8 +596,8 @@ app.post("/api/check", verifyLimiter, async (req, res) => {
   const key = store.keys.find(item => normalizeLicenseCode(item.code) === code);
   if (!key) return res.json({ valid: false, reason: "code_not_found" });
   if (key.isActive === false) return res.json({ valid: false, reason: "code_disabled" });
-  if (!key.expiresAt || new Date(key.expiresAt).getTime() <= Date.now()) return res.json({ valid: false, reason: "code_expired" });
-  return res.json({ valid: true, expires_at: key.expiresAt, created_at: key.createdAt, max_devices: key.devices, code: key.code });
+  if (key.expiresAt && new Date(key.expiresAt).getTime() <= Date.now()) return res.json({ valid: false, reason: "code_expired" });
+  return res.json({ valid: true, expires_at: key.expiresAt || null, started: Boolean(key.expiresAt), created_at: key.createdAt, max_devices: key.devices, code: key.code });
 });
 
 function inferDeviceFromUserAgent(userAgent) {
@@ -673,7 +673,10 @@ app.post("/api/verify", verifyLimiter, async (req, res) => {
     const key = store.keys.find(item => normalizeLicenseCode(item.code) === code);
     if (!key) return { valid: false, reason: "code_not_found" };
     if (key.isActive === false) return { valid: false, reason: "code_disabled" };
-    if (!key.expiresAt || new Date(key.expiresAt).getTime() <= Date.now()) return { valid: false, reason: "code_expired" };
+    if (key.expiresAt && new Date(key.expiresAt).getTime() <= Date.now()) return { valid: false, reason: "code_expired" };
+
+    if (!key.expiresAt) key.expiresAt = new Date(Date.now() + Number(key.durationMs || 0)).toISOString();
+    if (Date.parse(key.expiresAt) <= Date.now()) return { valid: false, reason: "code_expired" };
 
     let activation = store.activations.find(item => item.keyId === key.id && item.deviceId === deviceId);
     if (activation) {
