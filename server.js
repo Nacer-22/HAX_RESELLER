@@ -54,10 +54,14 @@ if (!allowedOrigins.length) {
 }
 app.use(cors({
   origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    const websiteOrigins = [
+      "https://haxnonroot.rf.gd",
+      "https://www.haxnonroot.rf.gd"
+    ];
+    if (!origin || allowedOrigins.includes(origin) || websiteOrigins.includes(origin)) return callback(null, true);
     return callback(new Error("Origin is not allowed by CORS."));
   },
-  methods: ["GET", "POST", "PATCH", "DELETE"],
+  methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   maxAge: 600,
   optionsSuccessStatus: 204
