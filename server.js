@@ -677,7 +677,7 @@ app.get("/api/private/subscription/:token", async (req, res) => {
   const filename = SUPPORTED_SUBSCRIPTION_FILES.has(key.subscriptionFile)
     ? key.subscriptionFile
     : (SUPPORTED_SUBSCRIPTION_FILES.has(SUBSCRIPTION_CONFIG_FILE) ? SUBSCRIPTION_CONFIG_FILE : "7WAY.json");
-  return res.json({ ok: true, filename, expires_at: key.expiresAt });
+  return res.json({ ok: true, filename, expires_at: key.expiresAt, key_code: key.code });
 });
 
 app.post("/api/verify", verifyLimiter, async (req, res) => {
