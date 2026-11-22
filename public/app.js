@@ -107,10 +107,11 @@
     const keys = Array.isArray(pair[1].keys) ? pair[1].keys : [];
     $("resellerKeysCountBadge").textContent = keys.length;
     $("resellerKeysList").innerHTML = keys.length ? keys.map((k, i) => {
-      const started = Boolean(k.expiresAt);
-      const expired = started && Date.parse(k.expiresAt) <= Date.now();
-      const active = k.isActive !== false && !expired;
-      const status = k.isActive === false ? "STOPPED" : (expired ? "EXPIRED" : (started ? "ACTIVE" : "NOT STARTED"));
+      const expiresAtTime = k.expiresAt ? Date.parse(k.expiresAt) : NaN;
+      const started = k.started === true || Number.isFinite(expiresAtTime);
+      const expired = k.status === "EXPIRED" || (started && expiresAtTime <= Date.now());
+      const stopped = k.isActive === false || k.status === "STOPPED";
+      const status = stopped ? "موقوف" : (expired ? "منتهي" : (started ? "نشط" : "لم يبدأ"));
       return '<div style="background:rgba(10,13,20,.9);border:1px solid var(--card-border);padding:12px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
        '<div style="min-width:0"><div class="code-text">#' + (i + 1) + ' ' + safe(k.code) + '</div><div style="font-size:.7rem;color:var(--text-muted)">' + safe(k.durationLabel) + ' | Devices: ' + safe(k.devices) + ' | ' + status + '</div><div style="font-size:.72rem;color:#ff7180;margin-top:5px">الأجهزة المستخدمة: ' + (Array.isArray(k.activations) && k.activations.length ? k.activations.map(a => safe(a.model || "الموديل غير متاح")).join('، ') : 'لم يتم تفعيل المفتاح بعد') + '</div></div>' +
        '<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn-share-vibrant" type="button" data-act="copykey" data-k="' + safe(k.code) + '">نسخ الكود</button><button class="btn-share-vibrant" type="button" data-act="sharekey" data-k="' + safe(k.code) + '">مشاركة</button><button class="btn-trash" data-act="delkey" data-k="' + safe(k.id) + '">حذف</button></div></div>';
