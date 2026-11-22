@@ -52,13 +52,25 @@ if (!allowedOrigins.length) {
   console.error("ALLOWED_ORIGINS must contain the exact trusted front-end origins.");
   process.exit(1);
 }
+const normalizeOrigin = value => {
+  try {
+    const parsed = new URL(String(value));
+    return parsed.protocol === "https:" || parsed.protocol === "http:" ? parsed.origin : "";
+  } catch {
+    return "";
+  }
+};
+const websiteOrigins = [
+  "https://haxnonroot.rf.gd",
+  "https://www.haxnonroot.rf.gd",
+  "https://nacer-22.github.io"
+];
+const trustedOrigins = new Set([...allowedOrigins, ...websiteOrigins].map(normalizeOrigin).filter(Boolean));
+
 app.use(cors({
   origin(origin, callback) {
-    const websiteOrigins = [
-      "https://haxnonroot.rf.gd",
-      "https://www.haxnonroot.rf.gd"
-    ];
-    if (!origin || allowedOrigins.includes(origin) || websiteOrigins.includes(origin)) return callback(null, true);
+    if (!origin || trustedOrigins.has(normalizeOrigin(origin))) return callback(null, true);
+    console.warn("[CORS] Blocked origin:", String(origin).slice(0, 200));
     return callback(new Error("Origin is not allowed by CORS."));
   },
   methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
