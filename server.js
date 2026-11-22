@@ -253,6 +253,18 @@ function requireAuth(role) {
   };
 }
 
+function licenseStatus(key) {
+  const expiresAtTime = key.expiresAt ? Date.parse(key.expiresAt) : NaN;
+  const started = Number.isFinite(expiresAtTime);
+  const expired = started && expiresAtTime <= Date.now();
+  const stopped = key.isActive === false;
+  return {
+    started,
+    expired,
+    status: stopped ? "STOPPED" : (expired ? "EXPIRED" : (started ? "ACTIVE" : "NOT_STARTED"))
+  };
+}
+
 function publicReseller(store, reseller) {
   return {
     id: reseller.id,
@@ -421,8 +433,7 @@ app.get("/api/admin/keys", requireAuth("admin"), async (_req, res) => {
     const reseller = store.resellers.find(item => item.id === key.resellerId);
     const activations = store.activations.filter(item => item.keyId === key.id);
     const usedDevices = activations.length;
-    const expired = Boolean(key.expiresAt) && new Date(key.expiresAt).getTime() <= Date.now();
-    return { ...key, resellerLabel: reseller ? reseller.label : "الإدارة", usedDevices, activations: activations.map(item => ({ model: item.deviceModel || "الموديل غير متاح", platform: item.devicePlatform || "", activatedAt: item.activatedAt })), expired, isActive: key.isActive !== false };
+    return { ...key, ...licenseStatus(key), resellerLabel: reseller ? reseller.label : "الإدارة", usedDevices, activations: activations.map(item => ({ model: item.deviceModel || "الموديل غير متاح", platform: item.devicePlatform || "", activatedAt: item.activatedAt })), isActive: key.isActive !== false };
   });
   res.json({ keys });
 });
@@ -517,7 +528,7 @@ app.get("/api/reseller/keys", requireAuth("reseller"), async (req, res) => {
   const store = await readStore();
   const keys = store.keys.filter(key => key.resellerId === req.reseller.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(key => {
     const activations = store.activations.filter(item => item.keyId === key.id);
-    return { ...key, usedDevices: activations.length, activations: activations.map(item => ({ model: item.deviceModel || "الموديل غير متاح", platform: item.devicePlatform || "", activatedAt: item.activatedAt })), isActive: key.isActive !== false };
+    return { ...key, ...licenseStatus(key), usedDevices: activations.length, activations: activations.map(item => ({ model: item.deviceModel || "الموديل غير متاح", platform: item.devicePlatform || "", activatedAt: item.activatedAt })), isActive: key.isActive !== false };
   });
   res.json({ keys });
 });
@@ -740,6 +751,14 @@ app.post("/api/verify", verifyLimiter, async (req, res) => {
   });
 });
 
+app.use((req, res, next) => {
+  if (/\\.(?:html|js|css)$/i.test(req.path)) {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+  }
+  next();
+});
 app.use(express.static(PUBLIC_DIR, { extensions: ["html"] }));
 app.use((error, _req, res, _next) => {
   if (res.headersSent) return;
