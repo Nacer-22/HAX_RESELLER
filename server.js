@@ -112,7 +112,7 @@ function getDurationInfo(value) {
   return { durationMs, label: (durationMs / unitMs) + " " + unitLabel };
 }
 
-const defaultSettings = () => ({ basePrice: 1, maintenance: { client: false, reseller: false }, adminPasswordHash: "", adminSessionVersion: 0, adminPasswordChangedAt: null });
+const defaultSettings = () => ({ basePrice: 1, maintenance: { client: false, reseller: false, clientStartedAt: null, resellerStartedAt: null }, adminPasswordHash: "", adminSessionVersion: 0, adminPasswordChangedAt: null });
 const emptyStore = () => ({ resellers: [], keys: [], activations: [], settings: defaultSettings(), createdAt: new Date().toISOString() });
 let queue = Promise.resolve();
 
@@ -131,7 +131,7 @@ async function readStore() {
         const sessionVersion = Number(saved.adminSessionVersion);
         return {
           basePrice: Number.isFinite(basePrice) && basePrice >= 0 ? basePrice : 1,
-          maintenance: { client: maintenance.client === true, reseller: maintenance.reseller === true },
+          maintenance: { client: maintenance.client === true, reseller: maintenance.reseller === true, clientStartedAt: typeof maintenance.clientStartedAt === "string" ? maintenance.clientStartedAt : null, resellerStartedAt: typeof maintenance.resellerStartedAt === "string" ? maintenance.resellerStartedAt : null },
           adminPasswordHash: typeof saved.adminPasswordHash === "string" ? saved.adminPasswordHash : "",
           adminSessionVersion: Number.isSafeInteger(sessionVersion) && sessionVersion >= 0 ? sessionVersion : 0,
           adminPasswordChangedAt: saved.adminPasswordChangedAt || null
@@ -351,9 +351,36 @@ app.patch("/api/admin/settings/maintenance", requireAuth("admin"), async (req, r
       (client === undefined && reseller === undefined))
     return res.status(400).json({ error: "حالة الصيانة غير صالحة." });
   const maintenance = await mutateStore(store => {
-    if (client !== undefined) store.settings.maintenance.client = client;
-    if (reseller !== undefined) store.settings.maintenance.reseller = reseller;
-    return store.settings.maintenance;
+    const now = Date.now();
+    const current = store.settings.maintenance;
+
+    // Client maintenance pauses every key that was still active when maintenance began.
+    if (client !== undefined) {
+      const wasPaused = current.client === true;
+      if (client && !wasPaused) {
+        current.clientStartedAt = new Date(now).toISOString();
+      } else if (!client && wasPaused) {
+        const pausedAt = Date.parse(current.clientStartedAt || "");
+        if (Number.isFinite(pausedAt) && now > pausedAt) {
+          const pausedDuration = now - pausedAt;
+          for (const key of store.keys) {
+            const expiry = Date.parse(key.expiresAt || "");
+            // Do not revive keys that had already expired before maintenance.
+            if (Number.isFinite(expiry) && expiry > pausedAt) {
+              key.expiresAt = new Date(expiry + pausedDuration).toISOString();
+            }
+          }
+        }
+        current.clientStartedAt = null;
+      }
+      current.client = client;
+    }
+
+    if (reseller !== undefined) {
+      current.reseller = reseller;
+      current.resellerStartedAt = reseller ? (current.resellerStartedAt || new Date(now).toISOString()) : null;
+    }
+    return current;
   });
   res.json({ ok: true, maintenance });
 });
