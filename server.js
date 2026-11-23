@@ -698,12 +698,23 @@ app.get("/api/private/subscription/:token", async (req, res) => {
   const store = await readStore();
   const activation = store.activations.find(item => item.subscriptionTokenHash === sha256(token));
   if (!activation) {
-    return res.status(410).type("text/plain").send("Votre clé a expiré. Veuillez en acheter une nouvelle ⛔");
+    return res.status(410).json({ ok: false, expired: true });
   }
   const key = store.keys.find(item => item.id === activation.keyId);
   const expiry = key && Date.parse(key.expiresAt || "");
+  const filenameForKey = key
+    ? (SUPPORTED_SUBSCRIPTION_FILES.has(key.subscriptionFile)
+      ? key.subscriptionFile
+      : (SUPPORTED_SUBSCRIPTION_FILES.has(SUBSCRIPTION_CONFIG_FILE) ? SUBSCRIPTION_CONFIG_FILE : "7WAY.json"))
+    : null;
   if (!key || key.isActive === false || !Number.isFinite(expiry) || expiry <= Date.now()) {
-    return res.status(410).type("text/plain").send("Votre clé a expiré. Veuillez en acheter une nouvelle ⛔");
+    return res.status(410).json({
+      ok: false,
+      expired: true,
+      filename: filenameForKey,
+      key_code: key ? key.code : null,
+      expires_at: key ? key.expiresAt : null
+    });
   }
   if (store.settings.maintenance.client) {
     return res.status(503).type("text/plain").send("Le service est temporairement indisponible.");
