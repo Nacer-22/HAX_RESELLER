@@ -112,7 +112,7 @@ function getDurationInfo(value) {
   return { durationMs, label: (durationMs / unitMs) + " " + unitLabel };
 }
 
-const defaultSettings = () => ({ basePrice: 1, maintenance: { client: false, reseller: false, clientStartedAt: null, resellerStartedAt: null }, adminPasswordHash: "", adminSessionVersion: 0, adminPasswordChangedAt: null });
+const defaultSettings = () => ({ basePrice: 1, maintenance: { client: false, reseller: false, clientStartedAt: null }, adminPasswordHash: "", adminSessionVersion: 0, adminPasswordChangedAt: null });
 const emptyStore = () => ({ resellers: [], keys: [], activations: [], settings: defaultSettings(), createdAt: new Date().toISOString() });
 let queue = Promise.resolve();
 
@@ -131,7 +131,7 @@ async function readStore() {
         const sessionVersion = Number(saved.adminSessionVersion);
         return {
           basePrice: Number.isFinite(basePrice) && basePrice >= 0 ? basePrice : 1,
-          maintenance: { client: maintenance.client === true, reseller: maintenance.reseller === true, clientStartedAt: typeof maintenance.clientStartedAt === "string" ? maintenance.clientStartedAt : null, resellerStartedAt: typeof maintenance.resellerStartedAt === "string" ? maintenance.resellerStartedAt : null },
+          maintenance: { client: maintenance.client === true, reseller: maintenance.reseller === true, clientStartedAt: typeof maintenance.clientStartedAt === "string" ? maintenance.clientStartedAt : null },
           adminPasswordHash: typeof saved.adminPasswordHash === "string" ? saved.adminPasswordHash : "",
           adminSessionVersion: Number.isSafeInteger(sessionVersion) && sessionVersion >= 0 ? sessionVersion : 0,
           adminPasswordChangedAt: saved.adminPasswordChangedAt || null
@@ -269,14 +269,20 @@ function requireAuth(role) {
   };
 }
 
-function licenseStatus(key) {
-  const expiresAtTime = key.expiresAt ? Date.parse(key.expiresAt) : NaN;
-  const started = Number.isFinite(expiresAtTime);
-  const expired = started && expiresAtTime <= Date.now();
+function licenseStatus(key, maintenanceStartedAt = null) {
+  const now = Date.now();
+  const originalExpiry = key.expiresAt ? Date.parse(key.expiresAt) : NaN;
+  const started = Number.isFinite(originalExpiry);
+  const pauseAt = Date.parse(key.clientMaintenancePausedAt || maintenanceStartedAt || "");
+  const paused = started && Number.isFinite(pauseAt) && originalExpiry > pauseAt;
+  const effectiveExpiry = started ? originalExpiry + (paused ? Math.max(0, now - pauseAt) : 0) : NaN;
+  const expired = started && effectiveExpiry <= now;
   const stopped = key.isActive === false;
   return {
     started,
     expired,
+    paused,
+    expiresAt: started ? new Date(effectiveExpiry).toISOString() : key.expiresAt,
     status: stopped ? "STOPPED" : (expired ? "EXPIRED" : (started ? "ACTIVE" : "NOT_STARTED"))
   };
 }
@@ -320,7 +326,7 @@ app.get("/api/admin/overview", requireAuth("admin"), async (_req, res) => {
   res.json({
     resellers: store.resellers.length,
     keys: store.keys.length,
-    activeKeys: store.keys.filter(key => key.isActive !== false && (!key.expiresAt || new Date(key.expiresAt).getTime() > Date.now())).length,
+    activeKeys: store.keys.filter(key => key.isActive !== false && !licenseStatus(key, store.settings.maintenance.client ? store.settings.maintenance.clientStartedAt : null).expired).length,
     balance: Number(store.resellers.reduce((sum, item) => sum + Number(item.balance || 0), 0).toFixed(2))
   });
 });
@@ -359,26 +365,27 @@ app.patch("/api/admin/settings/maintenance", requireAuth("admin"), async (req, r
       const wasPaused = current.client === true;
       if (client && !wasPaused) {
         current.clientStartedAt = new Date(now).toISOString();
-      } else if (!client && wasPaused) {
-        const pausedAt = Date.parse(current.clientStartedAt || "");
-        if (Number.isFinite(pausedAt) && now > pausedAt) {
-          const pausedDuration = now - pausedAt;
-          for (const key of store.keys) {
-            const expiry = Date.parse(key.expiresAt || "");
-            // Do not revive keys that had already expired before maintenance.
-            if (Number.isFinite(expiry) && expiry > pausedAt) {
-              key.expiresAt = new Date(expiry + pausedDuration).toISOString();
-            }
+        for (const key of store.keys) {
+          const expiry = Date.parse(key.expiresAt || "");
+          if (Number.isFinite(expiry) && expiry > now) {
+            key.clientMaintenancePausedAt = current.clientStartedAt;
           }
+        }
+      } else if (!client && wasPaused) {
+        const fallbackPauseAt = Date.parse(current.clientStartedAt || "");
+        for (const key of store.keys) {
+          const expiry = Date.parse(key.expiresAt || "");
+          const pauseAt = Date.parse(key.clientMaintenancePausedAt || "");
+          const effectivePauseAt = Number.isFinite(pauseAt) ? pauseAt : fallbackPauseAt;
+          // Extend only keys that were active when maintenance began.
+          if (Number.isFinite(expiry) && Number.isFinite(effectivePauseAt) && expiry > effectivePauseAt && now > effectivePauseAt) {
+            key.expiresAt = new Date(expiry + (now - effectivePauseAt)).toISOString();
+          }
+          delete key.clientMaintenancePausedAt;
         }
         current.clientStartedAt = null;
       }
       current.client = client;
-    }
-
-    if (reseller !== undefined) {
-      current.reseller = reseller;
-      current.resellerStartedAt = reseller ? (current.resellerStartedAt || new Date(now).toISOString()) : null;
     }
     return current;
   });
@@ -476,7 +483,7 @@ app.get("/api/admin/keys", requireAuth("admin"), async (_req, res) => {
     const reseller = store.resellers.find(item => item.id === key.resellerId);
     const activations = store.activations.filter(item => item.keyId === key.id);
     const usedDevices = activations.length;
-    return { ...key, ...licenseStatus(key), resellerLabel: reseller ? reseller.label : "الإدارة", usedDevices, activations: activations.map(item => ({ model: item.deviceModel || "الموديل غير متاح", platform: item.devicePlatform || "", activatedAt: item.activatedAt })), isActive: key.isActive !== false };
+    return { ...key, ...licenseStatus(key, store.settings.maintenance.client ? store.settings.maintenance.clientStartedAt : null), resellerLabel: reseller ? reseller.label : "الإدارة", usedDevices, activations: activations.map(item => ({ model: item.deviceModel || "الموديل غير متاح", platform: item.devicePlatform || "", activatedAt: item.activatedAt })), isActive: key.isActive !== false };
   });
   res.json({ keys });
 });
@@ -571,7 +578,7 @@ app.get("/api/reseller/keys", requireAuth("reseller"), async (req, res) => {
   const store = await readStore();
   const keys = store.keys.filter(key => key.resellerId === req.reseller.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(key => {
     const activations = store.activations.filter(item => item.keyId === key.id);
-    return { ...key, ...licenseStatus(key), usedDevices: activations.length, activations: activations.map(item => ({ model: item.deviceModel || "الموديل غير متاح", platform: item.devicePlatform || "", activatedAt: item.activatedAt })), isActive: key.isActive !== false };
+    return { ...key, ...licenseStatus(key, store.settings.maintenance.client ? store.settings.maintenance.clientStartedAt : null), usedDevices: activations.length, activations: activations.map(item => ({ model: item.deviceModel || "الموديل غير متاح", platform: item.devicePlatform || "", activatedAt: item.activatedAt })), isActive: key.isActive !== false };
   });
   res.json({ keys });
 });
