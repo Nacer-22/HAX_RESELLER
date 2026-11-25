@@ -80,7 +80,7 @@
     state.sessionToken = data.sessionToken || state.sessionToken;
     state.shortlinkUrl = data.shortlinkUrl || state.shortlinkUrl;
     $("campaignName").textContent = data.campaignName || "رابط مختصر";
-    $("campaignReward").textContent = data.reward == null ? "مهمة متاحة" : "المكافأة: " + data.reward;
+    $("campaignReward").textContent = "مفتاح HAX واحد بعد تأكيد الإكمال من المنصة";
     $("taskPanel").hidden = false;
     $("resultPanel").hidden = true;
     $("claimForm").classList.add("form-complete");
