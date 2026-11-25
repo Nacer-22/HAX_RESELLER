@@ -2,12 +2,19 @@
   "use strict";
 
   const $ = id => document.getElementById(id);
+  const STORAGE_TOKEN = "hax_offerwall_claim_token";
+  const STORAGE_URL = "hax_offerwall_claim_url";
+  const STORAGE_NAME = "hax_offerwall_claim_name";
   const state = {
     config: null,
     captchaToken: "",
     widgetId: null,
     busy: false,
-    toastTimer: null
+    polling: false,
+    pollTimer: null,
+    toastTimer: null,
+    sessionToken: "",
+    shortlinkUrl: ""
   };
 
   function setStatus(message, type) {
@@ -27,7 +34,7 @@
   function setBusy(value) {
     state.busy = value;
     $("createButton").disabled = value || !state.config?.ready || !state.captchaToken;
-    $("buttonText").textContent = value ? "جارٍ إنشاء الرابط والمفتاح…" : "اختصر الرابط وأنشئ المفتاح";
+    $("buttonText").textContent = value ? "جارٍ تجهيز مهمة الاختصار…" : "ابدأ مهمة الاختصار";
   }
 
   function resetCaptcha() {
@@ -36,7 +43,7 @@
       try { window.turnstile.reset(state.widgetId); } catch (_) {}
     }
     setBusy(false);
-    $("captchaHint").textContent = "أكمل اختبار الحماية لتفعيل زر الإنشاء.";
+    $("captchaHint").textContent = "أكمل اختبار الحماية لتفعيل زر البدء.";
   }
 
   function loadTurnstile(siteKey) {
@@ -59,6 +66,31 @@
     });
   }
 
+  function clearSavedSession() {
+    sessionStorage.removeItem(STORAGE_TOKEN);
+    sessionStorage.removeItem(STORAGE_URL);
+    sessionStorage.removeItem(STORAGE_NAME);
+    state.sessionToken = "";
+    state.shortlinkUrl = "";
+    clearInterval(state.pollTimer);
+    state.pollTimer = null;
+  }
+
+  function showTask(data, restore) {
+    state.sessionToken = data.sessionToken || state.sessionToken;
+    state.shortlinkUrl = data.shortlinkUrl || state.shortlinkUrl;
+    $("campaignName").textContent = data.campaignName || "رابط مختصر";
+    $("campaignReward").textContent = data.reward == null ? "مهمة متاحة" : "المكافأة: " + data.reward;
+    $("taskPanel").hidden = false;
+    $("resultPanel").hidden = true;
+    $("claimForm").classList.add("form-complete");
+    if (!restore) {
+      $("waitingMessage").textContent = "افتح الرابط المختصر وأكمل المهمة، ثم ارجع إلى هذه الصفحة.";
+      setStatus("تم تجهيز المهمة. لن يصدر المفتاح قبل وصول تأكيد الإكمال.", "success");
+    }
+    startPolling();
+  }
+
   async function initialize() {
     $("createButton").disabled = true;
     try {
@@ -70,7 +102,7 @@
       });
       const config = await response.json().catch(() => ({}));
       if (!response.ok || !config.ready || !config.siteKey) {
-        $("captchaHint").textContent = "البوابة غير مفعّلة بعد. على صاحب الموقع إضافة مفاتيح ShrinkMe وCloudflare في Railway.";
+        $("captchaHint").textContent = "البوابة غير مفعّلة بعد. يلزم إعداد مفاتيح Offerwall.me وCloudflare على Railway.";
         setStatus(config.error || "الخدمة قيد الإعداد. لم يتم إصدار أي مفتاح.", "error");
         return;
       }
@@ -91,25 +123,19 @@
           $("captchaHint").textContent = "تعذر إكمال الاختبار. أعد المحاولة.";
         }
       });
-      $("captchaHint").textContent = "أكمل اختبار الحماية لتفعيل زر الإنشاء.";
+      $("captchaHint").textContent = "أكمل اختبار الحماية لتفعيل زر البدء.";
+
+      const savedToken = sessionStorage.getItem(STORAGE_TOKEN) || "";
+      const savedUrl = sessionStorage.getItem(STORAGE_URL) || "";
+      const savedName = sessionStorage.getItem(STORAGE_NAME) || "";
+      if (savedToken && savedUrl) {
+        showTask({ sessionToken: savedToken, shortlinkUrl: savedUrl, campaignName: savedName }, true);
+        pollStatus();
+      }
     } catch (error) {
       $("captchaHint").textContent = "تعذر تحميل الحماية حالياً.";
       setStatus(error.message || "تعذر الاتصال بالخادم.", "error");
     }
-  }
-
-  function validateUrl(value) {
-    try {
-      const url = new URL(value);
-      if (!["http:", "https:"].includes(url.protocol) || !url.hostname.includes(".") || url.username || url.password) return false;
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  function validateAlias(value) {
-    return !value || /^[A-Za-z0-9_-]{1,30}$/.test(value);
   }
 
   async function copyText(value) {
@@ -134,32 +160,9 @@
     }
   }
 
-  function showResult(data) {
-    $("shortUrlText").textContent = data.shortUrl;
-    $("shortUrlText").href = data.shortUrl;
-    $("issuedKey").textContent = data.key;
-    $("resultPanel").hidden = false;
-    $("resultPanel").scrollIntoView({ behavior: "smooth", block: "nearest" });
-    setStatus("تم إصدار مفتاح واحد بنجاح.", "success");
-  }
-
   async function submitForm(event) {
     event.preventDefault();
     if (state.busy) return;
-
-    const longUrl = $("longUrl").value.trim();
-    const alias = $("alias").value.trim();
-
-    if (!validateUrl(longUrl)) {
-      setStatus("أدخل رابطاً صحيحاً يبدأ بـ https:// أو http://.", "error");
-      $("longUrl").focus();
-      return;
-    }
-    if (!validateAlias(alias)) {
-      setStatus("الاسم المختصر غير صالح. استخدم حروفاً إنجليزية وأرقاماً و- و_.", "error");
-      $("alias").focus();
-      return;
-    }
     if (!state.config?.ready) {
       setStatus("الخدمة غير مفعّلة على الخادم بعد.", "error");
       return;
@@ -170,24 +173,30 @@
     }
 
     setBusy(true);
-    setStatus("يتم الآن التحقق واختصار الرابط…", "");
+    setStatus("يتم التحقق من الحماية والبحث عن مهمة متاحة…", "");
+    $("taskPanel").hidden = true;
     $("resultPanel").hidden = true;
 
     try {
-      const response = await fetch("/api/public/shorten-and-claim", {
+      const response = await fetch("/api/public/claim/start", {
         method: "POST",
         credentials: "same-origin",
         cache: "no-store",
         headers: { "Content-Type": "application/json", "Accept": "application/json" },
-        body: JSON.stringify({ longUrl, alias, captchaToken: state.captchaToken })
+        body: JSON.stringify({ captchaToken: state.captchaToken })
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok || data.ok !== true || !data.key || !data.shortUrl) {
-        throw new Error(data.error || "تعذر إنشاء الرابط أو المفتاح.");
+      if (!response.ok || !data.ok || !data.sessionToken || !data.shortlinkUrl) {
+        throw new Error(data.error || "تعذر تجهيز مهمة الاختصار.");
       }
-      showResult(data);
-      $("longUrl").value = "";
-      $("alias").value = "";
+      const target = new URL(data.shortlinkUrl);
+      if (target.protocol !== "https:" || !(target.hostname === "offerwall.me" || target.hostname.endsWith(".offerwall.me"))) {
+        throw new Error("رابط المهمة غير صالح؛ لم يتم حفظ الجلسة.");
+      }
+      sessionStorage.setItem(STORAGE_TOKEN, data.sessionToken);
+      sessionStorage.setItem(STORAGE_URL, target.toString());
+      sessionStorage.setItem(STORAGE_NAME, data.campaignName || "رابط مختصر");
+      showTask(data, false);
       resetCaptcha();
     } catch (error) {
       setStatus(error.message || "حدث خطأ. حاول مجدداً.", "error");
@@ -195,19 +204,97 @@
     }
   }
 
+  function openShortlink() {
+    if (!state.shortlinkUrl) {
+      toast("ابدأ مهمة جديدة أولاً.");
+      return;
+    }
+    const opened = window.open(state.shortlinkUrl, "_blank", "noopener,noreferrer");
+    if (!opened) {
+      toast("المتصفح منع فتح تبويب جديد. اسمح بالنوافذ المنبثقة لهذا الموقع أو افتح الرابط يدوياً.");
+      return;
+    }
+    $("waitingMessage").textContent = "تم فتح المهمة. أكمل الرابط المختصر ثم ارجع إلى تبويب HAX.";
+    startPolling();
+  }
+
+  async function pollStatus() {
+    if (!state.sessionToken || state.polling) return;
+    state.polling = true;
+    try {
+      const response = await fetch("/api/public/claim/status", {
+        method: "POST",
+        credentials: "same-origin",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({ sessionToken: state.sessionToken })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (response.status === 404 || data.state === "expired") {
+        clearSavedSession();
+        $("taskPanel").hidden = true;
+        $("claimForm").classList.remove("form-complete");
+        setStatus(data.error || "انتهت جلسة المهمة. ابدأ من جديد.", "error");
+        return;
+      }
+      if (!response.ok) throw new Error(data.error || "تعذر التحقق من حالة المهمة.");
+      if (data.state === "completed" && data.key) {
+        clearInterval(state.pollTimer);
+        state.pollTimer = null;
+        $("issuedKey").textContent = data.key;
+        $("taskPanel").hidden = true;
+        $("resultPanel").hidden = false;
+        $("claimForm").classList.remove("form-complete");
+        $("resultPanel").scrollIntoView({ behavior: "smooth", block: "nearest" });
+        setStatus("وصل إشعار الإكمال وتم إصدار مفتاحك بنجاح.", "success");
+        clearSavedSession();
+        return;
+      }
+      if (data.state === "reversed") {
+        clearSavedSession();
+        $("waitingMessage").textContent = data.error || "تم عكس عملية المكافأة.";
+        setStatus("لم يعد بالإمكان إصدار المفتاح لهذه العملية.", "error");
+      } else {
+        $("waitingMessage").textContent = "لم يصل تأكيد الإكمال بعد. أكمل المهمة في التبويب الآخر ثم عُد إلى هنا.";
+      }
+    } catch (error) {
+      $("waitingMessage").textContent = "تعذر تحديث الحالة الآن. ستتم إعادة المحاولة تلقائياً.";
+    } finally {
+      state.polling = false;
+    }
+  }
+
+  function startPolling() {
+    if (!state.sessionToken || state.pollTimer) return;
+    pollStatus();
+    state.pollTimer = setInterval(pollStatus, 7000);
+  }
+
   $("claimForm").addEventListener("submit", submitForm);
+  $("openShortlinkButton").addEventListener("click", openShortlink);
+  $("checkStatusButton").addEventListener("click", () => {
+    $("waitingMessage").textContent = "جارٍ التحقق من تأكيد المنصة…";
+    pollStatus();
+  });
   $("copyKeyButton").addEventListener("click", () => {
     const key = $("issuedKey").textContent.trim();
     if (key && key !== "—") copyText(key);
   });
-  $("copyLinkButton").addEventListener("click", () => {
-    const link = $("shortUrlText").href;
-    if (link && link !== "#") copyText(link);
-  });
   $("createAnotherButton").addEventListener("click", () => {
+    clearSavedSession();
     $("resultPanel").hidden = true;
-    setStatus("أدخل رابطاً جديداً لإنشاء مفتاح آخر.", "");
-    $("longUrl").focus();
+    $("taskPanel").hidden = true;
+    $("claimForm").classList.remove("form-complete");
+    setStatus("أكمل اختبار الحماية للحصول على مفتاح جديد.", "");
+    resetCaptcha();
+    $("turnstileBox").scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && state.sessionToken) pollStatus();
+  });
+  window.addEventListener("pageshow", () => {
+    if (state.sessionToken) pollStatus();
   });
 
   initialize();
