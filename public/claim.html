@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#080609">
+  <meta name="description" content="بوابة مفاتيح HAX_NON_ROOT الآمنة">
+  <title>HAX_NON_ROOT | بوابة المفاتيح</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/claim.css?v=1">
+  <script src="/claim.js?v=1" defer></script>
+</head>
+<body>
+  <div class="ambient ambient-one" aria-hidden="true"></div>
+  <div class="ambient ambient-two" aria-hidden="true"></div>
+  <div class="scanline" aria-hidden="true"></div>
+
+  <main class="page">
+    <header class="topbar">
+      <div class="brand-mark" aria-hidden="true">H</div>
+      <div class="brand-copy">
+        <span class="brand-name">HAX_NON_ROOT</span>
+        <span class="brand-sub">SECURE KEY GATEWAY</span>
+      </div>
+      <span class="secure-pill"><i></i> بوابة آمنة</span>
+    </header>
+
+    <section class="intro" aria-labelledby="page-title">
+      <div class="avatar-wrap">
+        <div class="avatar-orbit orbit-a"></div>
+        <div class="avatar-orbit orbit-b"></div>
+        <div class="avatar">N</div>
+        <span class="avatar-status" aria-label="متصل"></span>
+      </div>
+      <p class="eyebrow">HAX ACCESS SYSTEM</p>
+      <h1 id="page-title">مفتاحك المؤقت <span>يبدأ من هنا</span></h1>
+      <p class="intro-text">أدخل الرابط الذي تريد مشاركته. سننشئ له رابطاً مختصراً عبر ShrinkMe ثم نصدر لك مفتاح HAX خاصاً.</p>
+    </section>
+
+    <section class="panel" aria-label="إنشاء الرابط والمفتاح">
+      <div class="panel-heading">
+        <div>
+          <span class="section-index">01 / CREATE</span>
+          <h2>اختصار رابط جديد</h2>
+        </div>
+        <div class="link-glyph" aria-hidden="true">↗</div>
+      </div>
+
+      <form id="claimForm" novalidate>
+        <div class="field">
+          <label for="longUrl">الرابط الطويل</label>
+          <div class="input-shell">
+            <span class="field-icon" aria-hidden="true">⌁</span>
+            <input id="longUrl" name="longUrl" type="url" inputmode="url" maxlength="2048"
+              placeholder="https://example.com/your-link" autocomplete="url" required>
+          </div>
+          <small class="hint">استخدم رابطاً عاماً صحيحاً يبدأ بـ https:// أو http://</small>
+        </div>
+
+        <div class="field">
+          <label for="alias">اسم مختصر مخصص <span class="optional">(اختياري)</span></label>
+          <div class="input-shell alias-shell">
+            <span class="alias-prefix">shrinkme.click/</span>
+            <input id="alias" name="alias" type="text" maxlength="30"
+              placeholder="اتركه فارغاً للاسم التلقائي" autocomplete="off" dir="ltr">
+          </div>
+          <small class="hint">حروف إنجليزية وأرقام وشرطة فقط، حتى 30 خانة.</small>
+        </div>
+
+        <div class="security-row">
+          <span class="security-icon" aria-hidden="true">◈</span>
+          <div>
+            <strong>فحص حماية Cloudflare</strong>
+            <small>يمنع الطلبات الآلية وإصدار المفاتيح دون تحقق.</small>
+          </div>
+        </div>
+        <div id="turnstileBox" class="captcha-box">
+          <div id="turnstileWidget"></div>
+          <p id="captchaHint" class="captcha-hint">يتم تحميل اختبار الحماية…</p>
+        </div>
+
+        <button id="createButton" class="primary-button" type="submit" disabled>
+          <span class="button-shine" aria-hidden="true"></span>
+          <span id="buttonText">اختصر الرابط وأنشئ المفتاح</span>
+          <span class="button-arrow" aria-hidden="true">←</span>
+        </button>
+        <p id="statusMessage" class="status-message" role="status" aria-live="polite"></p>
+      </form>
+
+      <div id="resultPanel" class="result-panel" hidden>
+        <div class="success-heading">
+          <span class="success-check">✓</span>
+          <div>
+            <strong>تم إنشاء الرابط والمفتاح</strong>
+            <small>المفتاح صادر من خادم HAX الرسمي.</small>
+          </div>
+        </div>
+
+        <div class="result-field">
+          <label for="shortUrlText">الرابط المختصر</label>
+          <div class="copy-line">
+            <a id="shortUrlText" class="short-url" href="#" target="_blank" rel="noopener noreferrer">—</a>
+            <button id="copyLinkButton" class="mini-copy" type="button">نسخ</button>
+          </div>
+        </div>
+
+        <div class="key-card">
+          <div class="key-label"><span>مفتاح HAX</span><span class="duration-chip">ساعة واحدة</span></div>
+          <div id="issuedKey" class="issued-key" dir="ltr">—</div>
+          <p class="key-note">تبدأ مدة الساعة عند أول تفعيل للمفتاح داخل موقع HAX، وليس عند إنشائه.</p>
+        </div>
+        <button id="copyKeyButton" class="copy-key-button" type="button">
+          <span aria-hidden="true">▣</span> نسخ المفتاح
+        </button>
+        <button id="createAnotherButton" class="secondary-button" type="button">إنشاء رابط آخر</button>
+      </div>
+    </section>
+
+    <section class="notice">
+      <span class="notice-icon" aria-hidden="true">!</span>
+      <p>لا تحتاج إلى فتح الرابط المختصر للحصول على المفتاح. تُحتسب أرباح ShrinkMe فقط من الزيارات الحقيقية المؤهلة، وليس من إنشاء الرابط وحده.</p>
+    </section>
+
+    <footer class="footer">
+      <div class="footer-line"></div>
+      <p class="longer-text">إذا أردت مدة أطول فتواصل مع الموزعين الرسميين أو <a href="https://t.me/Nacer_22" target="_blank" rel="noopener noreferrer" aria-label="التواصل مع صاحب الموقع عبر تيليجرام">صاحب الموقع</a></p>
+      <span class="footer-brand">HAX_NON_ROOT <b>•</b> ALL RIGHTS RESERVED</span>
+    </footer>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>
