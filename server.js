@@ -27,7 +27,10 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || "").split(",").map(v => v
 const SUBSCRIPTION_INTERNAL_SECRET = process.env.SUBSCRIPTION_INTERNAL_SECRET || "";
 const SUBSCRIPTION_PUBLIC_BASE_URL = String(process.env.SUBSCRIPTION_PUBLIC_BASE_URL || "").replace(/\/+$/, "");
 const SUBSCRIPTION_CONFIG_FILE = process.env.SUBSCRIPTION_CONFIG_FILE || "7WAY.json";
-const SHRINKME_API_TOKEN = process.env.SHRINKME_API_TOKEN || "";
+const OFFERWALLME_PUBLIC_API_KEY = process.env.OFFERWALLME_PUBLIC_API_KEY || "";
+const OFFERWALLME_PRIVATE_SECRET = process.env.OFFERWALLME_PRIVATE_SECRET || "";
+const OFFERWALLME_BEARER_TOKEN = process.env.OFFERWALLME_BEARER_TOKEN || "";
+const OFFERWALLME_DEFAULT_COUNTRY = String(process.env.OFFERWALLME_DEFAULT_COUNTRY || "DZ").toUpperCase();
 const TURNSTILE_SITE_KEY = process.env.TURNSTILE_SITE_KEY || "";
 const TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY || "";
 
@@ -84,6 +87,7 @@ app.use(cors({
   optionsSuccessStatus: 204
 }));
 app.use(express.json({ limit: "20kb", strict: true }));
+app.use(express.urlencoded({ extended: false, limit: "20kb" }));
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -118,7 +122,7 @@ function getDurationInfo(value) {
 }
 
 const defaultSettings = () => ({ basePrice: 1, maintenance: { client: false, reseller: false, clientStartedAt: null }, adminPasswordHash: "", adminSessionVersion: 0, adminPasswordChangedAt: null });
-const emptyStore = () => ({ resellers: [], keys: [], activations: [], settings: defaultSettings(), createdAt: new Date().toISOString() });
+const emptyStore = () => ({ resellers: [], keys: [], activations: [], claimSessions: [], offerwallTransactions: [], settings: defaultSettings(), createdAt: new Date().toISOString() });
 let queue = Promise.resolve();
 
 async function readStore() {
@@ -129,6 +133,8 @@ async function readStore() {
       resellers: Array.isArray(parsed.resellers) ? parsed.resellers : [],
       keys: Array.isArray(parsed.keys) ? parsed.keys : [],
       activations: Array.isArray(parsed.activations) ? parsed.activations : [],
+      claimSessions: Array.isArray(parsed.claimSessions) ? parsed.claimSessions : [],
+      offerwallTransactions: Array.isArray(parsed.offerwallTransactions) ? parsed.offerwallTransactions : [],
       settings: (() => {
         const saved = parsed.settings && typeof parsed.settings === "object" ? parsed.settings : {};
         const maintenance = saved.maintenance && typeof saved.maintenance === "object" ? saved.maintenance : {};
@@ -418,40 +424,132 @@ const gatewayLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: "وصلت إلى الحد المسموح مؤقتاً. حاول لاحقاً." }
 });
+const claimStatusLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 30,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "طلبات التحقق كثيرة. انتظر قليلاً." }
+});
+
+function offerwallReady() {
+  return Boolean(
+    OFFERWALLME_PUBLIC_API_KEY &&
+    OFFERWALLME_PRIVATE_SECRET &&
+    OFFERWALLME_BEARER_TOKEN &&
+    TURNSTILE_SITE_KEY &&
+    TURNSTILE_SECRET_KEY &&
+    /^[A-Z]{2}$/.test(OFFERWALLME_DEFAULT_COUNTRY)
+  );
+}
 
 app.get("/api/public/gateway-config", (_req, res) => {
-  const ready = Boolean(SHRINKME_API_TOKEN && TURNSTILE_SITE_KEY && TURNSTILE_SECRET_KEY);
   res.setHeader("Cache-Control", "no-store");
   res.json({
-    ready,
-    siteKey: ready ? TURNSTILE_SITE_KEY : "",
+    ready: offerwallReady(),
+    siteKey: offerwallReady() ? TURNSTILE_SITE_KEY : "",
     durationMs: 3600000,
     durationLabel: "ساعة واحدة",
-    startsOnFirstUse: true
+    startsOnFirstUse: true,
+    provider: "Offerwall.me"
   });
 });
 
-function validateGatewayDestination(value) {
-  if (typeof value !== "string" || value.length > 2048) return null;
-  let target;
-  try { target = new URL(value.trim()); } catch { return null; }
-  if (!["http:", "https:"].includes(target.protocol)) return null;
-  if (target.username || target.password) return null;
-  const host = target.hostname.toLowerCase();
-  if (!host.includes(".") || net.isIP(host)) return null;
-  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local")) return null;
-  const blockedHosts = [
-    "shrinkme.io", "shrinkme.click",
-    "haxnonroot.rf.gd", "haxreseller-production.up.railway.app"
-  ];
-  if (blockedHosts.some(domain => host === domain || host.endsWith("." + domain))) return null;
-  target.hash = target.hash.slice(0, 500);
-  return target.toString();
+function safeIpAddress(req) {
+  let value = String(req.ip || "").trim();
+  if (value.startsWith("::ffff:")) value = value.slice(7);
+  return net.isIP(value) ? value : "";
 }
 
-app.post("/api/public/shorten-and-claim", gatewayLimiter, async (req, res) => {
-  if (!SHRINKME_API_TOKEN || !TURNSTILE_SITE_KEY || !TURNSTILE_SECRET_KEY) {
-    return res.status(503).json({ error: "بوابة المفاتيح لم تكتمل إعداداتها على الخادم بعد." });
+function visitorCountry(req) {
+  const edgeCountry = String(req.get("cf-ipcountry") || "").trim().toUpperCase();
+  if (/^[A-Z]{2}$/.test(edgeCountry) && edgeCountry !== "XX" && edgeCountry !== "T1") return edgeCountry;
+  return OFFERWALLME_DEFAULT_COUNTRY;
+}
+
+function signedOfferwallIdentity(userId, expiresAt) {
+  const message = [
+    "offerwall-user-v1",
+    OFFERWALLME_PUBLIC_API_KEY,
+    userId,
+    String(expiresAt)
+  ].join("\n");
+  return crypto.createHmac("sha256", OFFERWALLME_PRIVATE_SECRET).update(message, "utf8").digest("hex");
+}
+
+function equalHexDigest(expected, supplied) {
+  const a = Buffer.from(String(expected || "").toLowerCase(), "hex");
+  const b = Buffer.from(String(supplied || "").toLowerCase(), "hex");
+  return a.length > 0 && a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+async function verifyTurnstile(req, token) {
+  if (!token || token.length > 4096) return false;
+  const body = new URLSearchParams({
+    secret: TURNSTILE_SECRET_KEY,
+    response: token
+  });
+  const ip = safeIpAddress(req);
+  if (ip) body.set("remoteip", ip);
+  const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+    signal: AbortSignal.timeout(10000)
+  });
+  const result = await response.json().catch(() => ({}));
+  const expectedHost = String(req.hostname || "").toLowerCase();
+  return response.ok &&
+    result.success === true &&
+    (!result.hostname || String(result.hostname).toLowerCase() === expectedHost);
+}
+
+async function getOfferwallShortlinks(userId, ip, country, identityExpires, identitySignature) {
+  const endpoint = new URL("https://offerwall.me/slapi.php");
+  endpoint.searchParams.set("api", OFFERWALLME_PUBLIC_API_KEY);
+  endpoint.searchParams.set("token", OFFERWALLME_BEARER_TOKEN);
+  endpoint.searchParams.set("id", userId);
+  endpoint.searchParams.set("ip", ip);
+  endpoint.searchParams.set("country", country);
+  endpoint.searchParams.set("identityExpires", String(identityExpires));
+  endpoint.searchParams.set("identitySignature", identitySignature);
+
+  const response = await fetch(endpoint, {
+    method: "GET",
+    headers: { "Accept": "application/json" },
+    signal: AbortSignal.timeout(15000)
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || Number(data.status) !== 200 || !Array.isArray(data.data)) {
+    const message = String(data.message || data.error || "لم تُرجع منصة المكافآت روابط متاحة لهذا البلد.");
+    throw new Error(message.slice(0, 220));
+  }
+
+  const available = data.data.filter(item => {
+    if (!item || typeof item.url !== "string") return false;
+    const remaining = item.remaining_views == null ? 1 : Number(item.remaining_views);
+    const daily = item.daily_limit == null ? 1 : Number(item.daily_limit);
+    if (!(remaining > 0) || !(daily > 0)) return false;
+    const countries = Array.isArray(item.countries) ? item.countries.map(v => String(v).toUpperCase()) : ["ALL"];
+    return countries.includes("ALL") || countries.includes(country);
+  });
+  if (!available.length) throw new Error("لا توجد روابط مختصرة متاحة حالياً لبلدك. جرّب لاحقاً.");
+  return available;
+}
+
+function validateOfferwallStartUrl(value) {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:" || !(url.hostname === "offerwall.me" || url.hostname.endsWith(".offerwall.me"))) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+app.post("/api/public/claim/start", gatewayLimiter, async (req, res) => {
+  if (!offerwallReady()) {
+    return res.status(503).json({ error: "إعدادات Offerwall.me وCloudflare لم تكتمل على السيرفر بعد." });
   }
 
   const storeBefore = await readStore();
@@ -459,67 +557,159 @@ app.post("/api/public/shorten-and-claim", gatewayLimiter, async (req, res) => {
     return res.status(503).json({ error: "إصدار المفاتيح متوقف مؤقتاً للصيانة." });
   }
 
-  const longUrl = validateGatewayDestination(req.body?.longUrl);
-  const alias = String(req.body?.alias || "").trim();
+  const ip = safeIpAddress(req);
+  if (!ip) return res.status(400).json({ error: "تعذر تحديد عنوان اتصالك. أعد تحميل الصفحة وحاول مجدداً." });
   const captchaToken = String(req.body?.captchaToken || "").trim();
-
-  if (!longUrl) return res.status(400).json({ error: "أدخل رابطاً صحيحاً يبدأ بـ https:// أو http:// ومن نطاق عام." });
-  if (alias && (!/^[A-Za-z0-9_-]{1,30}$/.test(alias))) {
-    return res.status(400).json({ error: "الاسم المختصر يقبل الحروف الإنجليزية والأرقام و- و_ حتى 30 حرفاً." });
-  }
-  if (!captchaToken || captchaToken.length > 4096) {
-    return res.status(400).json({ error: "أكمل اختبار الحماية أولاً." });
-  }
+  const country = visitorCountry(req);
 
   try {
-    const verifyBody = new URLSearchParams({
-      secret: TURNSTILE_SECRET_KEY,
-      response: captchaToken
-    });
-    if (req.ip) verifyBody.set("remoteip", req.ip);
-    const captchaResponse = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: verifyBody,
-      signal: AbortSignal.timeout(10000)
-    });
-    const captcha = await captchaResponse.json().catch(() => ({}));
-    const expectedHostname = String(req.hostname || "").toLowerCase();
-    if (!captchaResponse.ok || captcha.success !== true ||
-        (captcha.hostname && String(captcha.hostname).toLowerCase() !== expectedHostname)) {
+    if (!await verifyTurnstile(req, captchaToken)) {
       return res.status(403).json({ error: "فشل اختبار الحماية. أعد المحاولة." });
     }
 
-    const shrinkUrl = new URL("https://shrinkme.io/api");
-    shrinkUrl.searchParams.set("api", SHRINKME_API_TOKEN);
-    shrinkUrl.searchParams.set("url", longUrl);
-    if (alias) shrinkUrl.searchParams.set("alias", alias);
+    const userId = newId();
+    const sessionToken = crypto.randomBytes(32).toString("base64url");
+    const now = Date.now();
+    const identityExpires = Math.floor(now / 1000) + (4 * 60 * 60);
+    const identitySignature = signedOfferwallIdentity(userId, identityExpires);
 
-    const shrinkResponse = await fetch(shrinkUrl, {
-      method: "GET",
-      headers: { "Accept": "application/json" },
-      signal: AbortSignal.timeout(15000)
+    const shortlinks = await getOfferwallShortlinks(
+      userId, ip, country, identityExpires, identitySignature
+    );
+    const selected = shortlinks[crypto.randomInt(shortlinks.length)];
+    const shortlinkUrl = validateOfferwallStartUrl(selected.url);
+    if (!shortlinkUrl) throw new Error("أعادت منصة المكافآت رابطاً غير صالح. لم يتم إنشاء مفتاح.");
+
+    const claim = {
+      id: newId(),
+      userId,
+      sessionTokenHash: sha256(sessionToken),
+      country,
+      ipHash: sha256(ip),
+      campaignId: String(selected.id || "").slice(0, 120),
+      campaignName: String(selected.name || selected.shortlink || "رابط مختصر").slice(0, 120),
+      reward: Number.isFinite(Number(selected.reward)) ? Number(selected.reward) : null,
+      state: "pending",
+      keyId: null,
+      transactionId: null,
+      createdAt: new Date(now).toISOString(),
+      expiresAt: new Date(now + 24 * 60 * 60 * 1000).toISOString()
+    };
+
+    await mutateStore(store => {
+      if (store.settings.maintenance.client) return false;
+      store.claimSessions.push(claim);
+      const cutoff = now - (7 * 24 * 60 * 60 * 1000);
+      store.claimSessions = store.claimSessions.filter(item => Date.parse(item.createdAt || 0) > cutoff);
+      store.offerwallTransactions = store.offerwallTransactions.slice(-5000);
+      return true;
     });
-    const shrinkData = await shrinkResponse.json().catch(() => ({}));
-    if (!shrinkResponse.ok || shrinkData.status !== "success" || typeof shrinkData.shortenedUrl !== "string") {
-      const detail = Array.isArray(shrinkData.message)
-        ? shrinkData.message.join(" ")
-        : String(shrinkData.message || "تعذر اختصار الرابط لدى ShrinkMe.");
-      return res.status(502).json({ error: detail.slice(0, 240) });
-    }
 
-    let shortUrl;
-    try {
-      shortUrl = new URL(shrinkData.shortenedUrl);
-    } catch {
-      return res.status(502).json({ error: "أعاد ShrinkMe رابطاً غير صالح." });
-    }
-    if (shortUrl.protocol !== "https:" || shortUrl.hostname.toLowerCase() !== "shrinkme.click") {
-      return res.status(502).json({ error: "عنوان الاختصار المعاد غير متوقع؛ لم يتم إصدار مفتاح." });
-    }
+    return res.status(201).json({
+      ok: true,
+      sessionToken,
+      shortlinkUrl,
+      campaignName: claim.campaignName,
+      reward: claim.reward,
+      country,
+      expiresAt: claim.expiresAt
+    });
+  } catch (error) {
+    console.error("Offerwall.me shortlink session failed:", error.message);
+    return res.status(502).json({
+      error: error.message || "تعذر الحصول على رابط مختصر من منصة المكافآت. حاول لاحقاً."
+    });
+  }
+});
 
-    const createdKey = await mutateStore(store => {
-      if (store.settings.maintenance.client) return null;
+app.post("/api/public/claim/status", claimStatusLimiter, async (req, res) => {
+  const token = String(req.body?.sessionToken || "").trim();
+  if (!/^[A-Za-z0-9_-]{40,60}$/.test(token)) {
+    return res.status(400).json({ error: "جلسة المطالبة غير صالحة." });
+  }
+  const hash = sha256(token);
+  const store = await readStore();
+  const claim = store.claimSessions.find(item =>
+    item.sessionTokenHash === hash && Date.parse(item.expiresAt || "") > Date.now()
+  );
+  if (!claim) return res.status(404).json({ state: "expired", error: "انتهت جلسة الحصول على المفتاح. ابدأ من جديد." });
+  if (claim.state !== "completed" || !claim.keyId) {
+    return res.json({ state: claim.state || "pending", completed: false });
+  }
+  const key = store.keys.find(item => item.id === claim.keyId);
+  if (!key || key.isActive === false) {
+    return res.json({ state: "reversed", completed: false, error: "تم عكس عملية المكافأة أو إلغاء المفتاح من المنصة." });
+  }
+  return res.json({
+    state: "completed",
+    completed: true,
+    key: key.code,
+    durationMs: key.durationMs,
+    durationLabel: key.durationLabel,
+    startsOnFirstUse: true
+  });
+});
+
+app.post("/api/public/offerwallme/postback", async (req, res) => {
+  if (!OFFERWALLME_PRIVATE_SECRET) return res.status(503).type("text/plain").send("not configured");
+
+  const body = req.body && typeof req.body === "object" ? req.body : {};
+  const subId = String(body.subId || body.subid || "");
+  const transId = String(body.transId || body.transid || "");
+  const reward = String(body.reward ?? "");
+  const status = String(body.status || "");
+  const offerType = String(body.offer_type || body.offerType || "").toLowerCase();
+  const signature = String(body.signature || "").toLowerCase();
+
+  if (!subId || !transId || !reward || !signature || !/^[12]$/.test(status)) {
+    return res.status(400).type("text/plain").send("missing parameters");
+  }
+
+  const expected = crypto.createHash("md5")
+    .update(subId + transId + reward + OFFERWALLME_PRIVATE_SECRET, "utf8")
+    .digest("hex");
+  if (!equalHexDigest(expected, signature)) {
+    return res.status(403).type("text/plain").send("invalid signature");
+  }
+
+  try {
+    await mutateStore(store => {
+      const existingTx = store.offerwallTransactions.find(item => item.transId === transId);
+      const claim = store.claimSessions.find(item => item.userId === subId);
+      if (!claim) {
+        if (!existingTx) store.offerwallTransactions.push({
+          transId, userId: subId, reward, status, offerType,
+          accepted: false, reason: "unknown_user", createdAt: new Date().toISOString()
+        });
+        return;
+      }
+
+      if (status === "2") {
+        if (existingTx) {
+          existingTx.status = "2";
+          existingTx.reversedAt = new Date().toISOString();
+        }
+        claim.state = "reversed";
+        if (claim.keyId) {
+          const key = store.keys.find(item => item.id === claim.keyId);
+          if (key) key.isActive = false;
+        }
+        return;
+      }
+
+      if (existingTx || claim.keyId || offerType !== "shortlink" ||
+          Date.parse(claim.expiresAt || "") <= Date.now() ||
+          claim.state === "reversed" ||
+          store.settings.maintenance.client) {
+        if (!existingTx) store.offerwallTransactions.push({
+          transId, userId: subId, reward, status, offerType,
+          accepted: false,
+          reason: offerType !== "shortlink" ? "not_shortlink" : "duplicate_or_expired",
+          createdAt: new Date().toISOString()
+        });
+        return;
+      }
+
       const now = new Date().toISOString();
       const key = {
         id: newId(),
@@ -531,28 +721,24 @@ app.post("/api/public/shorten-and-claim", gatewayLimiter, async (req, res) => {
         isActive: true,
         createdAt: now,
         expiresAt: null,
-        source: "SHRINKME_GATEWAY",
-        shortenedUrl: shortUrl.toString()
+        source: "OFFERWALLME_SHORTLINK",
+        offerwallTransactionId: transId
       };
       store.keys.push(key);
-      return key;
+      claim.state = "completed";
+      claim.keyId = key.id;
+      claim.transactionId = transId;
+      claim.completedAt = now;
+      store.offerwallTransactions.push({
+        transId, userId: subId, reward, status, offerType,
+        accepted: true, keyId: key.id, createdAt: now
+      });
     });
 
-    if (!createdKey) {
-      return res.status(503).json({ error: "تم تفعيل الصيانة قبل إصدار المفتاح. لم يتم إنشاء مفتاح." });
-    }
-
-    return res.status(201).json({
-      ok: true,
-      shortUrl: shortUrl.toString(),
-      key: createdKey.code,
-      durationMs: createdKey.durationMs,
-      durationLabel: createdKey.durationLabel,
-      startsOnFirstUse: true
-    });
+    return res.status(200).type("text/plain").send("ok");
   } catch (error) {
-    console.error("Public gateway failed:", error.message);
-    return res.status(502).json({ error: "تعذر إكمال العملية مع ShrinkMe أو السيرفر. حاول مرة أخرى." });
+    console.error("Offerwall.me postback processing failed:", error.message);
+    return res.status(500).type("text/plain").send("processing failed");
   }
 });
 
