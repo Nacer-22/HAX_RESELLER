@@ -7,8 +7,6 @@
   const STORAGE_NAME = "hax_offerwall_claim_name";
   const state = {
     config: null,
-    captchaToken: "",
-    widgetId: null,
     busy: false,
     polling: false,
     pollTimer: null,
@@ -33,37 +31,8 @@
 
   function setBusy(value) {
     state.busy = value;
-    $("createButton").disabled = value || !state.config?.ready || !state.captchaToken;
+    $("createButton").disabled = value || !state.config?.ready || Boolean(state.sessionToken);
     $("buttonText").textContent = value ? "جارٍ تجهيز مهمة الاختصار…" : "ابدأ مهمة الاختصار";
-  }
-
-  function resetCaptcha() {
-    state.captchaToken = "";
-    if (window.turnstile && state.widgetId !== null) {
-      try { window.turnstile.reset(state.widgetId); } catch (_) {}
-    }
-    setBusy(false);
-    $("captchaHint").textContent = "أكمل اختبار الحماية لتفعيل زر البدء.";
-  }
-
-  function loadTurnstile(siteKey) {
-    return new Promise((resolve, reject) => {
-      if (window.turnstile) return resolve();
-      const existing = document.querySelector('script[data-turnstile-loader="1"]');
-      if (existing) {
-        existing.addEventListener("load", resolve, { once: true });
-        existing.addEventListener("error", reject, { once: true });
-        return;
-      }
-      const script = document.createElement("script");
-      script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-      script.async = true;
-      script.defer = true;
-      script.dataset.turnstileLoader = "1";
-      script.onload = resolve;
-      script.onerror = () => reject(new Error("تعذر تحميل خدمة Cloudflare. تحقق من الاتصال ثم أعد تحميل الصفحة."));
-      document.head.appendChild(script);
-    });
   }
 
   function clearSavedSession() {
@@ -84,6 +53,7 @@
     $("taskPanel").hidden = false;
     $("resultPanel").hidden = true;
     $("claimForm").classList.add("form-complete");
+    $("createButton").disabled = true;
     if (!restore) {
       $("waitingMessage").textContent = "افتح الرابط المختصر وأكمل المهمة، ثم ارجع إلى هذه الصفحة.";
       setStatus("تم تجهيز المهمة. لن يصدر المفتاح قبل وصول تأكيد الإكمال.", "success");
@@ -101,29 +71,15 @@
         headers: { "Accept": "application/json" }
       });
       const config = await response.json().catch(() => ({}));
-      if (!response.ok || !config.ready || !config.siteKey) {
-        $("captchaHint").textContent = "البوابة غير مفعّلة بعد. يلزم إعداد مفاتيح Offerwall.me وCloudflare على Railway.";
-        setStatus(config.error || "الخدمة قيد الإعداد. لم يتم إصدار أي مفتاح.", "error");
+      if (!response.ok || !config.ready) {
+        $("buttonText").textContent = "الخدمة غير جاهزة حالياً";
+        setStatus(config.error || "لم تكتمل إعدادات Offerwall.me على السيرفر بعد.", "error");
         return;
       }
       state.config = config;
-      await loadTurnstile(config.siteKey);
-      state.widgetId = window.turnstile.render("#turnstileWidget", {
-        sitekey: config.siteKey,
-        theme: "dark",
-        size: "flexible",
-        callback: token => {
-          state.captchaToken = String(token || "");
-          $("captchaHint").textContent = state.captchaToken ? "تم اجتياز اختبار الحماية." : "أكمل اختبار الحماية.";
-          setBusy(false);
-        },
-        "expired-callback": resetCaptcha,
-        "error-callback": () => {
-          resetCaptcha();
-          $("captchaHint").textContent = "تعذر إكمال الاختبار. أعد المحاولة.";
-        }
-      });
-      $("captchaHint").textContent = "أكمل اختبار الحماية لتفعيل زر البدء.";
+      $("createButton").disabled = false;
+      $("buttonText").textContent = "ابدأ مهمة الاختصار";
+      setStatus("البوابة جاهزة. اضغط لبدء مهمة الاختصار.", "success");
 
       const savedToken = sessionStorage.getItem(STORAGE_TOKEN) || "";
       const savedUrl = sessionStorage.getItem(STORAGE_URL) || "";
@@ -133,8 +89,8 @@
         pollStatus();
       }
     } catch (error) {
-      $("captchaHint").textContent = "تعذر تحميل الحماية حالياً.";
-      setStatus(error.message || "تعذر الاتصال بالخادم.", "error");
+      $("buttonText").textContent = "تعذر الاتصال بالخادم";
+      setStatus(error.message || "تعذر الاتصال بالخادم. حاول مجدداً.", "error");
     }
   }
 
@@ -172,13 +128,9 @@
       setStatus("الخدمة غير مفعّلة على الخادم بعد.", "error");
       return;
     }
-    if (!state.captchaToken) {
-      setStatus("أكمل اختبار الحماية أولاً.", "error");
-      return;
-    }
 
     setBusy(true);
-    setStatus("يتم التحقق من الحماية والبحث عن مهمة متاحة…", "");
+    setStatus("يتم الآن البحث عن مهمة اختصار متاحة لبلدك…", "");
     $("taskPanel").hidden = true;
     $("resultPanel").hidden = true;
 
@@ -188,7 +140,7 @@
         credentials: "same-origin",
         cache: "no-store",
         headers: { "Content-Type": "application/json", "Accept": "application/json" },
-        body: JSON.stringify({ captchaToken: state.captchaToken })
+        body: JSON.stringify({})
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok || !data.sessionToken || !data.shortlinkUrl) {
@@ -202,10 +154,9 @@
       sessionStorage.setItem(STORAGE_URL, target.toString());
       sessionStorage.setItem(STORAGE_NAME, data.campaignName || "رابط مختصر");
       showTask(data, false);
-      resetCaptcha();
     } catch (error) {
       setStatus(error.message || "حدث خطأ. حاول مجدداً.", "error");
-      resetCaptcha();
+      setBusy(false);
     }
   }
 
@@ -216,7 +167,7 @@
     }
     const opened = window.open(state.shortlinkUrl, "_blank", "noopener,noreferrer");
     if (!opened) {
-      toast("المتصفح منع فتح تبويب جديد. اسمح بالنوافذ المنبثقة لهذا الموقع أو افتح الرابط يدوياً.");
+      toast("المتصفح منع فتح تبويب جديد. اسمح بالنوافذ المنبثقة لهذا الموقع أو افتح الرابط من جديد.");
       return;
     }
     $("waitingMessage").textContent = "تم فتح المهمة. أكمل الرابط المختصر ثم ارجع إلى تبويب HAX.";
@@ -239,6 +190,7 @@
         clearSavedSession();
         $("taskPanel").hidden = true;
         $("claimForm").classList.remove("form-complete");
+        $("createButton").disabled = !state.config?.ready;
         setStatus(data.error || "انتهت جلسة المهمة. ابدأ من جديد.", "error");
         return;
       }
@@ -253,16 +205,18 @@
         $("resultPanel").scrollIntoView({ behavior: "smooth", block: "nearest" });
         setStatus("وصل إشعار الإكمال وتم إصدار مفتاحك بنجاح.", "success");
         clearSavedSession();
+        $("createButton").disabled = false;
         return;
       }
       if (data.state === "reversed") {
         clearSavedSession();
         $("waitingMessage").textContent = data.error || "تم عكس عملية المكافأة.";
         setStatus("لم يعد بالإمكان إصدار المفتاح لهذه العملية.", "error");
+        $("createButton").disabled = !state.config?.ready;
       } else {
         $("waitingMessage").textContent = "لم يصل تأكيد الإكمال بعد. أكمل المهمة في التبويب الآخر ثم عُد إلى هنا.";
       }
-    } catch (error) {
+    } catch (_) {
       $("waitingMessage").textContent = "تعذر تحديث الحالة الآن. ستتم إعادة المحاولة تلقائياً.";
     } finally {
       state.polling = false;
@@ -290,9 +244,9 @@
     $("resultPanel").hidden = true;
     $("taskPanel").hidden = true;
     $("claimForm").classList.remove("form-complete");
-    setStatus("أكمل اختبار الحماية للحصول على مفتاح جديد.", "");
-    resetCaptcha();
-    $("turnstileBox").scrollIntoView({ behavior: "smooth", block: "center" });
+    $("createButton").disabled = !state.config?.ready;
+    setStatus("يمكنك الآن بدء مهمة جديدة.", "success");
+    $("createButton").scrollIntoView({ behavior: "smooth", block: "center" });
   });
 
   document.addEventListener("visibilitychange", () => {
