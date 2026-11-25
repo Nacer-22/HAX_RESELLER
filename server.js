@@ -31,8 +31,6 @@ const OFFERWALLME_PUBLIC_API_KEY = process.env.OFFERWALLME_PUBLIC_API_KEY || "";
 const OFFERWALLME_PRIVATE_SECRET = process.env.OFFERWALLME_PRIVATE_SECRET || "";
 const OFFERWALLME_BEARER_TOKEN = process.env.OFFERWALLME_BEARER_TOKEN || "";
 const OFFERWALLME_DEFAULT_COUNTRY = String(process.env.OFFERWALLME_DEFAULT_COUNTRY || "DZ").toUpperCase();
-const TURNSTILE_SITE_KEY = process.env.TURNSTILE_SITE_KEY || "";
-const TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY || "";
 
 if (JWT_SECRET.length < 48) {
   console.error("JWT_SECRET must contain at least 48 random characters.");
@@ -419,7 +417,7 @@ app.get("/api/public/maintenance", async (_req, res) => {
 
 const gatewayLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  limit: 3,
+  limit: 5,
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: { error: "وصلت إلى الحد المسموح مؤقتاً. حاول لاحقاً." }
@@ -437,8 +435,6 @@ function offerwallReady() {
     OFFERWALLME_PUBLIC_API_KEY &&
     OFFERWALLME_PRIVATE_SECRET &&
     OFFERWALLME_BEARER_TOKEN &&
-    TURNSTILE_SITE_KEY &&
-    TURNSTILE_SECRET_KEY &&
     /^[A-Z]{2}$/.test(OFFERWALLME_DEFAULT_COUNTRY)
   );
 }
@@ -447,7 +443,6 @@ app.get("/api/public/gateway-config", (_req, res) => {
   res.setHeader("Cache-Control", "no-store");
   res.json({
     ready: offerwallReady(),
-    siteKey: offerwallReady() ? TURNSTILE_SITE_KEY : "",
     durationMs: 3600000,
     durationLabel: "ساعة واحدة",
     startsOnFirstUse: true,
@@ -482,27 +477,6 @@ function equalHexDigest(expected, supplied) {
   const a = Buffer.from(String(expected || "").toLowerCase(), "hex");
   const b = Buffer.from(String(supplied || "").toLowerCase(), "hex");
   return a.length > 0 && a.length === b.length && crypto.timingSafeEqual(a, b);
-}
-
-async function verifyTurnstile(req, token) {
-  if (!token || token.length > 4096) return false;
-  const body = new URLSearchParams({
-    secret: TURNSTILE_SECRET_KEY,
-    response: token
-  });
-  const ip = safeIpAddress(req);
-  if (ip) body.set("remoteip", ip);
-  const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body,
-    signal: AbortSignal.timeout(10000)
-  });
-  const result = await response.json().catch(() => ({}));
-  const expectedHost = String(req.hostname || "").toLowerCase();
-  return response.ok &&
-    result.success === true &&
-    (!result.hostname || String(result.hostname).toLowerCase() === expectedHost);
 }
 
 async function getOfferwallShortlinks(userId, ip, country, identityExpires, identitySignature) {
@@ -550,7 +524,7 @@ function validateOfferwallStartUrl(value) {
 
 app.post("/api/public/claim/start", gatewayLimiter, async (req, res) => {
   if (!offerwallReady()) {
-    return res.status(503).json({ error: "إعدادات Offerwall.me وCloudflare لم تكتمل على السيرفر بعد." });
+    return res.status(503).json({ error: "إعدادات Offerwall.me لم تكتمل على السيرفر بعد." });
   }
 
   const storeBefore = await readStore();
@@ -560,14 +534,9 @@ app.post("/api/public/claim/start", gatewayLimiter, async (req, res) => {
 
   const ip = safeIpAddress(req);
   if (!ip) return res.status(400).json({ error: "تعذر تحديد عنوان اتصالك. أعد تحميل الصفحة وحاول مجدداً." });
-  const captchaToken = String(req.body?.captchaToken || "").trim();
   const country = visitorCountry(req);
 
   try {
-    if (!await verifyTurnstile(req, captchaToken)) {
-      return res.status(403).json({ error: "فشل اختبار الحماية. أعد المحاولة." });
-    }
-
     const userId = newId();
     const sessionToken = crypto.randomBytes(32).toString("base64url");
     const now = Date.now();
