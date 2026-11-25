@@ -97,3 +97,26 @@ button{touch-action:manipulation}
 @media(min-width:700px){.page{padding-top:32px}.intro{padding-top:38px}.panel{padding:25px 25px 23px}}
 @media(max-width:380px){.page{width:calc(100% - 22px)}.panel{padding:18px 14px}.brand-name{font-size:13px}.secure-pill{font-size:9px;padding:5px 8px}.alias-prefix{font-size:10px;padding-right:7px;padding-left:8px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+
+.task-summary{display:flex;align-items:center;gap:12px;margin:8px 0 19px;padding:14px;border:1px solid rgba(255,76,102,.18);border-radius:14px;background:linear-gradient(130deg,rgba(116,12,39,.15),rgba(255,255,255,.018))}
+.task-icon{width:40px;height:40px;display:grid;place-items:center;border-radius:12px;background:rgba(229,9,42,.13);border:1px solid rgba(255,85,112,.28);color:#ff7189;font-size:24px}
+.task-summary strong,.task-summary small{display:block}
+.task-summary strong{font-size:12px;color:#fff}
+.task-summary small{margin-top:4px;color:#a79ca9;font-size:10px;line-height:1.8}
+.task-panel{margin-top:18px;padding-top:17px;border-top:1px solid rgba(255,255,255,.08)}
+.task-heading{display:flex;align-items:center;gap:11px;margin-bottom:14px}
+.task-number{width:34px;height:34px;display:grid;place-items:center;border-radius:11px;background:rgba(229,9,42,.12);border:1px solid rgba(255,75,101,.3);color:#ff7189;font-family:Arial,sans-serif;font-size:12px;font-weight:900}
+.task-heading strong,.task-heading small{display:block}
+.task-heading strong{font-size:12px;color:#ffeef2}
+.task-heading small{margin-top:3px;color:#a69ca7;font-size:9px;line-height:1.8}
+.campaign-card{padding:13px 14px;border:1px solid rgba(255,255,255,.09);border-radius:12px;background:#09080d}
+.campaign-label{display:block;color:#ff7189;font-size:9px;margin-bottom:4px}
+.campaign-card strong{display:block;font-size:12px;color:#fff;overflow-wrap:anywhere}
+.campaign-reward{display:block;margin-top:5px;color:#a69ca7;font-size:9px}
+.waiting-row{display:flex;align-items:flex-start;gap:9px;margin:13px 2px 5px}
+.waiting-dot{flex:0 0 8px;width:8px;height:8px;margin-top:6px;border-radius:50%;background:#ffbf56;box-shadow:0 0 10px rgba(255,191,86,.5);animation:waitingPulse 1.6s ease-in-out infinite}
+.waiting-row p{margin:0;color:#b9aeb9;font-size:10px;line-height:1.9}
+.form-complete{opacity:.82}
+@keyframes waitingPulse{0%,100%{opacity:.4}50%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.waiting-dot{animation:none}}
