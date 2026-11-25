@@ -163,6 +163,11 @@
   async function submitForm(event) {
     event.preventDefault();
     if (state.busy) return;
+    if (state.sessionToken) {
+      setStatus("لديك مهمة مفتوحة بالفعل. أكملها أو انتظر تأكيدها قبل بدء مهمة أخرى.", "error");
+      $("taskPanel").scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     if (!state.config?.ready) {
       setStatus("الخدمة غير مفعّلة على الخادم بعد.", "error");
       return;
