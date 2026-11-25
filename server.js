@@ -461,9 +461,10 @@ function safeIpAddress(req) {
   return net.isIP(value) ? value : "";
 }
 
-function visitorCountry(req) {
-  const edgeCountry = String(req.get("cf-ipcountry") || "").trim().toUpperCase();
-  if (/^[A-Z]{2}$/.test(edgeCountry) && edgeCountry !== "XX" && edgeCountry !== "T1") return edgeCountry;
+function visitorCountry(_req) {
+  // Use the publisher-configured audience country unless the app is placed behind
+  // a trusted country-aware proxy. This Railway service is also directly reachable,
+  // so do not trust a client-supplied country header.
   return OFFERWALLME_DEFAULT_COUNTRY;
 }
 
@@ -596,7 +597,7 @@ app.post("/api/public/claim/start", gatewayLimiter, async (req, res) => {
       expiresAt: new Date(now + 24 * 60 * 60 * 1000).toISOString()
     };
 
-    await mutateStore(store => {
+    const saved = await mutateStore(store => {
       if (store.settings.maintenance.client) return false;
       store.claimSessions.push(claim);
       const cutoff = now - (7 * 24 * 60 * 60 * 1000);
@@ -604,6 +605,7 @@ app.post("/api/public/claim/start", gatewayLimiter, async (req, res) => {
       store.offerwallTransactions = store.offerwallTransactions.slice(-5000);
       return true;
     });
+    if (!saved) return res.status(503).json({ error: "تم تفعيل الصيانة قبل بدء المهمة. لم يتم إنشاء جلسة." });
 
     return res.status(201).json({
       ok: true,
