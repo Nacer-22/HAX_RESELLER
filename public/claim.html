@@ -9,8 +9,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/claim.css?v=1">
-  <script src="/claim.js?v=1" defer></script>
+  <link rel="stylesheet" href="/claim.css?v=2">
+  <script src="/claim.js?v=2" defer></script>
 </head>
 <body>
   <div class="ambient ambient-one" aria-hidden="true"></div>
@@ -36,46 +36,35 @@
       </div>
       <p class="eyebrow">HAX ACCESS SYSTEM</p>
       <h1 id="page-title">مفتاحك المؤقت <span>يبدأ من هنا</span></h1>
-      <p class="intro-text">أدخل الرابط الذي تريد مشاركته. سننشئ له رابطاً مختصراً عبر ShrinkMe ثم نصدر لك مفتاح HAX خاصاً.</p>
+      <p class="intro-text">أكمل مهمة رابط مختصر متاحة عبر منصة المكافآت. لا يصدر المفتاح إلا بعد وصول تأكيد موثوق إلى سيرفر HAX.</p>
     </section>
 
-    <section class="panel" aria-label="إنشاء الرابط والمفتاح">
+    <section class="panel" aria-label="الحصول على مفتاح HAX">
       <div class="panel-heading">
         <div>
-          <span class="section-index">01 / CREATE</span>
-          <h2>اختصار رابط جديد</h2>
+          <span class="section-index">01 / VERIFY</span>
+          <h2>الحصول على مفتاح ساعة</h2>
         </div>
         <div class="link-glyph" aria-hidden="true">↗</div>
       </div>
 
       <form id="claimForm" novalidate>
-        <div class="field">
-          <label for="longUrl">الرابط الطويل</label>
-          <div class="input-shell">
-            <span class="field-icon" aria-hidden="true">⌁</span>
-            <input id="longUrl" name="longUrl" type="url" inputmode="url" maxlength="2048"
-              placeholder="https://example.com/your-link" autocomplete="url" required>
+        <div class="task-summary">
+          <div class="task-icon" aria-hidden="true">↗</div>
+          <div>
+            <strong>مهمة رابط مختصر</strong>
+            <small>سيتم عرض رابط متاح لبلد اتصالك من Offerwall.me.</small>
           </div>
-          <small class="hint">استخدم رابطاً عاماً صحيحاً يبدأ بـ https:// أو http://</small>
-        </div>
-
-        <div class="field">
-          <label for="alias">اسم مختصر مخصص <span class="optional">(اختياري)</span></label>
-          <div class="input-shell alias-shell">
-            <span class="alias-prefix">shrinkme.click/</span>
-            <input id="alias" name="alias" type="text" maxlength="30"
-              placeholder="اتركه فارغاً للاسم التلقائي" autocomplete="off" dir="ltr">
-          </div>
-          <small class="hint">حروف إنجليزية وأرقام وشرطة فقط، حتى 30 خانة.</small>
         </div>
 
         <div class="security-row">
           <span class="security-icon" aria-hidden="true">◈</span>
           <div>
             <strong>فحص حماية Cloudflare</strong>
-            <small>يمنع الطلبات الآلية وإصدار المفاتيح دون تحقق.</small>
+            <small>يمنع الطلبات الآلية وطلبات إصدار المفاتيح المزيفة.</small>
           </div>
         </div>
+
         <div id="turnstileBox" class="captcha-box">
           <div id="turnstileWidget"></div>
           <p id="captchaHint" class="captcha-hint">يتم تحميل اختبار الحماية…</p>
@@ -83,29 +72,45 @@
 
         <button id="createButton" class="primary-button" type="submit" disabled>
           <span class="button-shine" aria-hidden="true"></span>
-          <span id="buttonText">اختصر الرابط وأنشئ المفتاح</span>
+          <span id="buttonText">ابدأ مهمة الاختصار</span>
           <span class="button-arrow" aria-hidden="true">←</span>
         </button>
         <p id="statusMessage" class="status-message" role="status" aria-live="polite"></p>
       </form>
 
-      <div id="resultPanel" class="result-panel" hidden>
+      <section id="taskPanel" class="task-panel" hidden>
+        <div class="task-heading">
+          <span class="task-number">02</span>
+          <div>
+            <strong>تم تجهيز مهمة الاختصار</strong>
+            <small>افتح المهمة وأكملها لدى مزود الرابط، ثم ارجع إلى هذه الصفحة.</small>
+          </div>
+        </div>
+        <div class="campaign-card">
+          <span class="campaign-label">المهمة المتاحة</span>
+          <strong id="campaignName">رابط مختصر</strong>
+          <span id="campaignReward" class="campaign-reward"></span>
+        </div>
+        <button id="openShortlinkButton" class="primary-button" type="button">
+          <span class="button-shine" aria-hidden="true"></span>
+          <span>فتح مهمة الرابط المختصر</span>
+          <span class="button-arrow" aria-hidden="true">↗</span>
+        </button>
+        <div class="waiting-row">
+          <span class="waiting-dot"></span>
+          <p id="waitingMessage">بانتظار تأكيد إكمال المهمة من المنصة…</p>
+        </div>
+        <button id="checkStatusButton" class="secondary-button" type="button">تحقق من الحالة الآن</button>
+      </section>
+
+      <section id="resultPanel" class="result-panel" hidden>
         <div class="success-heading">
           <span class="success-check">✓</span>
           <div>
-            <strong>تم إنشاء الرابط والمفتاح</strong>
-            <small>المفتاح صادر من خادم HAX الرسمي.</small>
+            <strong>تم تأكيد المهمة وإصدار المفتاح</strong>
+            <small>وصل تأكيد موثوق إلى سيرفر HAX.</small>
           </div>
         </div>
-
-        <div class="result-field">
-          <label for="shortUrlText">الرابط المختصر</label>
-          <div class="copy-line">
-            <a id="shortUrlText" class="short-url" href="#" target="_blank" rel="noopener noreferrer">—</a>
-            <button id="copyLinkButton" class="mini-copy" type="button">نسخ</button>
-          </div>
-        </div>
-
         <div class="key-card">
           <div class="key-label"><span>مفتاح HAX</span><span class="duration-chip">ساعة واحدة</span></div>
           <div id="issuedKey" class="issued-key" dir="ltr">—</div>
@@ -114,13 +119,13 @@
         <button id="copyKeyButton" class="copy-key-button" type="button">
           <span aria-hidden="true">▣</span> نسخ المفتاح
         </button>
-        <button id="createAnotherButton" class="secondary-button" type="button">إنشاء رابط آخر</button>
-      </div>
+        <button id="createAnotherButton" class="secondary-button" type="button">الحصول على مفتاح آخر</button>
+      </section>
     </section>
 
     <section class="notice">
       <span class="notice-icon" aria-hidden="true">!</span>
-      <p>لا تحتاج إلى فتح الرابط المختصر للحصول على المفتاح. تُحتسب أرباح ShrinkMe فقط من الزيارات الحقيقية المؤهلة، وليس من إنشاء الرابط وحده.</p>
+      <p>إصدار المفتاح يعتمد على إشعار إتمام موقّع من منصة المكافآت، وليس على مجرد فتح الرابط أو العودة إلى الصفحة. قد يختلف توفر المهام حسب البلد وحملات المعلنين.</p>
     </section>
 
     <footer class="footer">
