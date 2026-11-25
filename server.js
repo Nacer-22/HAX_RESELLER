@@ -655,13 +655,24 @@ app.post("/api/public/claim/status", claimStatusLimiter, async (req, res) => {
 app.post("/api/public/offerwallme/postback", async (req, res) => {
   if (!OFFERWALLME_PRIVATE_SECRET) return res.status(503).type("text/plain").send("not configured");
 
+  // Offerwall.me sends publisher postbacks as HTTP POST. Accept both
+  // form-encoded/JSON bodies and query parameters for compatibility with
+  // placement-level URL templates, without trusting any client-supplied state.
   const body = req.body && typeof req.body === "object" ? req.body : {};
-  const subId = String(body.subId || body.subid || "");
-  const transId = String(body.transId || body.transid || "");
-  const reward = String(body.reward ?? "");
-  const status = String(body.status || "");
-  const offerType = String(body.offer_type || body.offerType || "").toLowerCase();
-  const signature = String(body.signature || "").toLowerCase();
+  const params = { ...req.query, ...body };
+  const pick = (...names) => {
+    for (const name of names) {
+      const value = params[name];
+      if (value !== undefined && value !== null && String(value).trim() !== "") return String(value).trim();
+    }
+    return "";
+  };
+  const subId = pick("subId", "subid");
+  const transId = pick("transId", "transid");
+  const reward = pick("reward");
+  const status = pick("status");
+  const offerType = pick("offer_type", "offerType").toLowerCase();
+  const signature = pick("signature").toLowerCase();
 
   if (!subId || !transId || !reward || !signature || !/^[12]$/.test(status)) {
     return res.status(400).type("text/plain").send("missing parameters");
@@ -687,14 +698,26 @@ app.post("/api/public/offerwallme/postback", async (req, res) => {
       }
 
       if (status === "2") {
+        // A reversal may revoke only the key created for this exact transaction.
+        // Never disable a different key merely because the subId matches.
         if (existingTx) {
           existingTx.status = "2";
           existingTx.reversedAt = new Date().toISOString();
-        }
-        claim.state = "reversed";
-        if (claim.keyId) {
-          const key = store.keys.find(item => item.id === claim.keyId);
-          if (key) key.isActive = false;
+          if (existingTx.accepted && existingTx.keyId) {
+            const reversedKey = store.keys.find(item => item.id === existingTx.keyId);
+            if (reversedKey) reversedKey.isActive = false;
+            const matchingClaim = store.claimSessions.find(item =>
+              item.userId === subId && item.transactionId === transId
+            );
+            if (matchingClaim) matchingClaim.state = "reversed";
+          }
+        } else {
+          store.offerwallTransactions.push({
+            transId, userId: subId, reward, status, offerType,
+            accepted: false, reason: "reversal_before_credit",
+            createdAt: new Date().toISOString()
+          });
+          claim.state = "reversed";
         }
         return;
       }
