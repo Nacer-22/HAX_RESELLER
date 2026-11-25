@@ -8,6 +8,7 @@ const rateLimit = require("express-rate-limit");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const net = require("node:net");
 const fs = require("fs/promises");
 const path = require("path");
 
@@ -26,6 +27,9 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || "").split(",").map(v => v
 const SUBSCRIPTION_INTERNAL_SECRET = process.env.SUBSCRIPTION_INTERNAL_SECRET || "";
 const SUBSCRIPTION_PUBLIC_BASE_URL = String(process.env.SUBSCRIPTION_PUBLIC_BASE_URL || "").replace(/\/+$/, "");
 const SUBSCRIPTION_CONFIG_FILE = process.env.SUBSCRIPTION_CONFIG_FILE || "7WAY.json";
+const SHRINKME_API_TOKEN = process.env.SHRINKME_API_TOKEN || "";
+const TURNSTILE_SITE_KEY = process.env.TURNSTILE_SITE_KEY || "";
+const TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY || "";
 
 if (JWT_SECRET.length < 48) {
   console.error("JWT_SECRET must contain at least 48 random characters.");
@@ -63,7 +67,8 @@ const normalizeOrigin = value => {
 const websiteOrigins = [
   "https://haxnonroot.rf.gd",
   "https://www.haxnonroot.rf.gd",
-  "https://nacer-22.github.io"
+  "https://nacer-22.github.io",
+  "https://haxreseller-production.up.railway.app"
 ];
 const trustedOrigins = new Set([...allowedOrigins, ...websiteOrigins].map(normalizeOrigin).filter(Boolean));
 
@@ -298,6 +303,15 @@ function publicReseller(store, reseller) {
   };
 }
 
+app.get("/claim", (_req, res, next) => {
+  res.setHeader("Content-Security-Policy",
+    "default-src 'self'; script-src 'self' https://challenges.cloudflare.com https://fonts.googleapis.com; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; " +
+    "img-src 'self' data: https:; connect-src 'self' https://challenges.cloudflare.com; " +
+    "frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; " +
+    "form-action 'self'; frame-ancestors 'none'");
+  next();
+});
 app.get("/health", (_req, res) => res.json({ ok: true, service: "HAX_RESELLER" }));
 
 app.post("/api/auth/admin/login", authLimiter, async (req, res) => {
@@ -395,6 +409,151 @@ app.patch("/api/admin/settings/maintenance", requireAuth("admin"), async (req, r
 app.get("/api/public/maintenance", async (_req, res) => {
   const store = await readStore();
   res.json({ maintenance: store.settings.maintenance });
+});
+
+const gatewayLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 3,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "وصلت إلى الحد المسموح مؤقتاً. حاول لاحقاً." }
+});
+
+app.get("/api/public/gateway-config", (_req, res) => {
+  const ready = Boolean(SHRINKME_API_TOKEN && TURNSTILE_SITE_KEY && TURNSTILE_SECRET_KEY);
+  res.setHeader("Cache-Control", "no-store");
+  res.json({
+    ready,
+    siteKey: ready ? TURNSTILE_SITE_KEY : "",
+    durationMs: 3600000,
+    durationLabel: "ساعة واحدة",
+    startsOnFirstUse: true
+  });
+});
+
+function validateGatewayDestination(value) {
+  if (typeof value !== "string" || value.length > 2048) return null;
+  let target;
+  try { target = new URL(value.trim()); } catch { return null; }
+  if (!["http:", "https:"].includes(target.protocol)) return null;
+  if (target.username || target.password) return null;
+  const host = target.hostname.toLowerCase();
+  if (!host.includes(".") || net.isIP(host)) return null;
+  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local")) return null;
+  const blockedHosts = [
+    "shrinkme.io", "shrinkme.click",
+    "haxnonroot.rf.gd", "haxreseller-production.up.railway.app"
+  ];
+  if (blockedHosts.some(domain => host === domain || host.endsWith("." + domain))) return null;
+  target.hash = target.hash.slice(0, 500);
+  return target.toString();
+}
+
+app.post("/api/public/shorten-and-claim", gatewayLimiter, async (req, res) => {
+  if (!SHRINKME_API_TOKEN || !TURNSTILE_SITE_KEY || !TURNSTILE_SECRET_KEY) {
+    return res.status(503).json({ error: "بوابة المفاتيح لم تكتمل إعداداتها على الخادم بعد." });
+  }
+
+  const storeBefore = await readStore();
+  if (storeBefore.settings.maintenance.client) {
+    return res.status(503).json({ error: "إصدار المفاتيح متوقف مؤقتاً للصيانة." });
+  }
+
+  const longUrl = validateGatewayDestination(req.body?.longUrl);
+  const alias = String(req.body?.alias || "").trim();
+  const captchaToken = String(req.body?.captchaToken || "").trim();
+
+  if (!longUrl) return res.status(400).json({ error: "أدخل رابطاً صحيحاً يبدأ بـ https:// أو http:// ومن نطاق عام." });
+  if (alias && (!/^[A-Za-z0-9_-]{1,30}$/.test(alias))) {
+    return res.status(400).json({ error: "الاسم المختصر يقبل الحروف الإنجليزية والأرقام و- و_ حتى 30 حرفاً." });
+  }
+  if (!captchaToken || captchaToken.length > 4096) {
+    return res.status(400).json({ error: "أكمل اختبار الحماية أولاً." });
+  }
+
+  try {
+    const verifyBody = new URLSearchParams({
+      secret: TURNSTILE_SECRET_KEY,
+      response: captchaToken
+    });
+    if (req.ip) verifyBody.set("remoteip", req.ip);
+    const captchaResponse = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: verifyBody,
+      signal: AbortSignal.timeout(10000)
+    });
+    const captcha = await captchaResponse.json().catch(() => ({}));
+    const expectedHostname = String(req.hostname || "").toLowerCase();
+    if (!captchaResponse.ok || captcha.success !== true ||
+        (captcha.hostname && String(captcha.hostname).toLowerCase() !== expectedHostname)) {
+      return res.status(403).json({ error: "فشل اختبار الحماية. أعد المحاولة." });
+    }
+
+    const shrinkUrl = new URL("https://shrinkme.io/api");
+    shrinkUrl.searchParams.set("api", SHRINKME_API_TOKEN);
+    shrinkUrl.searchParams.set("url", longUrl);
+    if (alias) shrinkUrl.searchParams.set("alias", alias);
+
+    const shrinkResponse = await fetch(shrinkUrl, {
+      method: "GET",
+      headers: { "Accept": "application/json" },
+      signal: AbortSignal.timeout(15000)
+    });
+    const shrinkData = await shrinkResponse.json().catch(() => ({}));
+    if (!shrinkResponse.ok || shrinkData.status !== "success" || typeof shrinkData.shortenedUrl !== "string") {
+      const detail = Array.isArray(shrinkData.message)
+        ? shrinkData.message.join(" ")
+        : String(shrinkData.message || "تعذر اختصار الرابط لدى ShrinkMe.");
+      return res.status(502).json({ error: detail.slice(0, 240) });
+    }
+
+    let shortUrl;
+    try {
+      shortUrl = new URL(shrinkData.shortenedUrl);
+    } catch {
+      return res.status(502).json({ error: "أعاد ShrinkMe رابطاً غير صالح." });
+    }
+    if (shortUrl.protocol !== "https:" || shortUrl.hostname.toLowerCase() !== "shrinkme.click") {
+      return res.status(502).json({ error: "عنوان الاختصار المعاد غير متوقع؛ لم يتم إصدار مفتاح." });
+    }
+
+    const createdKey = await mutateStore(store => {
+      if (store.settings.maintenance.client) return null;
+      const now = new Date().toISOString();
+      const key = {
+        id: newId(),
+        code: newLicenseCode(),
+        resellerId: null,
+        durationMs: 3600000,
+        durationLabel: "ساعة واحدة",
+        devices: 1,
+        isActive: true,
+        createdAt: now,
+        expiresAt: null,
+        source: "SHRINKME_GATEWAY",
+        shortenedUrl: shortUrl.toString()
+      };
+      store.keys.push(key);
+      return key;
+    });
+
+    if (!createdKey) {
+      return res.status(503).json({ error: "تم تفعيل الصيانة قبل إصدار المفتاح. لم يتم إنشاء مفتاح." });
+    }
+
+    return res.status(201).json({
+      ok: true,
+      shortUrl: shortUrl.toString(),
+      key: createdKey.code,
+      durationMs: createdKey.durationMs,
+      durationLabel: createdKey.durationLabel,
+      startsOnFirstUse: true
+    });
+  } catch (error) {
+    console.error("Public gateway failed:", error.message);
+    return res.status(502).json({ error: "تعذر إكمال العملية مع ShrinkMe أو السيرفر. حاول مرة أخرى." });
+  }
 });
 
 app.post("/api/admin/settings/password", requireAuth("admin"), async (req, res) => {
