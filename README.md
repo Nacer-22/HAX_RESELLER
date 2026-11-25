@@ -52,6 +52,15 @@ npm start
 ## التحقق من Offerwall.me
 ملف إثبات الملكية محفوظ داخل `public/6b07676202e2d8f6a3d4295f.html`، ويُقدَّم من المسار `/6b07676202e2d8f6a3d4295f.html` بعد نشر آخر نسخة من المستودع.
 
+## بوابة مكافأة الرابط المختصر
+- ابدأ جلسة مطالبة عبر `POST /api/public/claim/start`؛ لا يلزم Cloudflare Turnstile.
+- يستدعي الخادم Offerwall.me Shortlinks API بهوية مستخدم موقعة HMAC-SHA256.
+- لا يُصدر المفتاح إلا بعد Postback من Offerwall.me بحالة `status=1` ونوع `offer_type=shortlink` وتوقيع MD5 صحيح.
+- كل معرّف معاملة يُعالج مرة واحدة؛ وتُعالج عمليات العكس `status=2` على المفتاح المرتبط بالمعاملة نفسها فقط.
+- حد بدء الجلسات خمس محاولات لكل IP في الساعة، وحالة الجلسة تُفحص عبر `POST /api/public/claim/status`.
+
+إعدادات Railway المطلوبة: `OFFERWALLME_PUBLIC_API_KEY` و`OFFERWALLME_PRIVATE_SECRET` و`OFFERWALLME_BEARER_TOKEN`. اضبط Postback الخاص بـ Shortlinks في إعدادات الـ Placement على `https://haxreseller-production.up.railway.app/api/public/offerwallme/postback`. لا توجد حاجة إلى متغيرات Turnstile.
+
 ## التكامل الخارجي
 هذا النظام ينشئ ويدير مفاتيحه داخل مخزن بياناته المستقل. لم يتم ربطه بعد بخادم التحقق الخارجي أو نظام اشتراكات Happ؛ تتم إضافة ذلك بعد تحديد واجهات API وروابطك المعتمدة.
 
